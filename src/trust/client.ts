@@ -46,13 +46,18 @@ export class AgentTrustClient {
   async fetchScore(): Promise<TrustScoreSnapshot | null> {
     try {
       const score = await this.client.getScore(this.agentId);
+      const ext = score as unknown as Record<string, unknown>;
       return {
         agentId: this.agentId,
         compositeScore: score.composite ?? 0,
-        tier: score.certificationTier ?? null,
-        dimensions: (score as Record<string, unknown>).dimensions as Record<string, number> ?? {},
-        confidence: (score as Record<string, unknown>).confidence as number ?? 0,
-        evaluatedAt: (score as Record<string, unknown>).computedAt as string ?? new Date().toISOString(),
+        tier: (score.certificationTier as TrustScoreSnapshot['tier']) ?? null,
+        dimensions: isPlainObject(ext['dimensions'])
+          ? (ext['dimensions'] as Record<string, number>)
+          : {},
+        confidence: typeof ext['confidence'] === 'number' ? ext['confidence'] : 0,
+        evaluatedAt: typeof ext['computedAt'] === 'string'
+          ? ext['computedAt']
+          : new Date().toISOString(),
       };
     } catch {
       return null;
@@ -90,4 +95,8 @@ export class AgentTrustClient {
       // Non-fatal: trace ingest failure should not stop the agent
     }
   }
+}
+
+function isPlainObject(val: unknown): val is Record<string, unknown> {
+  return typeof val === 'object' && val !== null && !Array.isArray(val);
 }

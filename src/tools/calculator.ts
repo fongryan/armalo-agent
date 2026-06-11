@@ -32,7 +32,10 @@ export const calculatorTool: Tool = {
 // Safe expression evaluator — no eval(), no new Function()
 function evaluate(expr: string): number {
   const tokens = tokenize(expr);
-  const [result] = parseExpr(tokens, 0);
+  const [result, consumed] = parseExpr(tokens, 0);
+  if (consumed !== tokens.length) {
+    throw new Error(`Unexpected token after expression: ${JSON.stringify(tokens[consumed])}`);
+  }
   return result;
 }
 
@@ -51,7 +54,7 @@ function tokenize(expr: string): Token[] {
       tokens.push({ type: 'num', value: parseFloat(num) });
     } else if (/[a-z]/i.test(ch)) {
       let fn = '';
-      while (i < expr.length && /[a-z]/i.test(expr[i] ?? '')) fn += expr[i++];
+      while (i < expr.length && /[a-z0-9]/i.test(expr[i] ?? '')) fn += expr[i++];
       tokens.push({ type: 'fn', value: fn.toLowerCase() });
     } else if ('+-*/%^'.includes(ch) || (ch === '*' && expr[i + 1] === '*')) {
       if (ch === '*' && expr[i + 1] === '*') { tokens.push({ type: 'op', value: '**' }); i += 2; }

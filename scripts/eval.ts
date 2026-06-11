@@ -4,5 +4,5 @@
  * Run: npm run eval
  */
 
-// Re-export the eval suite as the script entrypoint
-export * from '../examples/eval-suite.js';
+import 'dotenv/config';
+import '../examples/eval-suite.js';

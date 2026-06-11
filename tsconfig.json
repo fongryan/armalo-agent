@@ -20,5 +20,5 @@
     "exactOptionalPropertyTypes": false
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "examples", "scripts", "mcp"]
+  "exclude": ["node_modules", "dist", "examples", "scripts", "mcp", "src/**/*.test.ts"]
 }
