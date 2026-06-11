@@ -1,0 +1,65 @@
+{
+  "name": "armalo-agent",
+  "version": "0.1.0",
+  "description": "A trust-native AI agent built on the Armalo SDK — behavioral pacts, real-time trust scoring, MCP shield, and multi-framework integrations.",
+  "keywords": [
+    "ai-agent",
+    "trust",
+    "armalo",
+    "pacts",
+    "mcp",
+    "anthropic",
+    "openai",
+    "langgraph",
+    "trust-score"
+  ],
+  "author": "Armalo AI",
+  "license": "MIT",
+  "homepage": "https://armalo.ai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/armalo-ai/armalo-agent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/armalo-ai/armalo-agent/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/agent.ts",
+    "start": "node dist/agent.js",
+    "score": "tsx scripts/score.ts",
+    "register": "tsx scripts/register.ts",
+    "eval": "tsx scripts/eval.ts",
+    "mcp": "tsx mcp/server.ts",
+    "example:research": "tsx examples/research-agent.ts",
+    "example:openai": "tsx examples/openai-agent.ts",
+    "example:langgraph": "tsx examples/langgraph-agent.ts",
+    "example:swarm": "tsx examples/swarm-demo.ts",
+    "example:evals": "tsx examples/eval-suite.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.52.0",
+    "@armalo/core": "^1.0.4",
+    "@armalo/integrations": "^0.1.1",
+    "@armalo/mcp-shield": "^0.1.1",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "chalk": "^5.3.0",
+    "dotenv": "^16.4.5",
+    "ora": "^8.0.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.7.0"
+  },
+  "optionalDependencies": {
+    "@langchain/langgraph": "^0.2.0",
+    "openai": "^4.70.0"
+  }
+}
