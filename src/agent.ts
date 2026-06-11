@@ -24,6 +24,14 @@ import { AgentTrustClient } from './trust/client.js';
 import { printTrustScore } from './trust/score.js';
 import { createSession, finalizeSession } from './trust/session.js';
 
+// Local content-block types that are compatible with both the Armalo wrapper
+// and the Anthropic SDK. The wrapper uses a generic `{ type: string; [k]: unknown }`
+// shape; we extend it with the concrete fields we actually read.
+type ArmaloBlock = { type: string; [key: string]: unknown };
+type ArmaloToolUseBlock = ArmaloBlock & { id: string; name: string; input: Record<string, unknown> };
+type ArmaloToolResultBlock = { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean };
+type ArmaloMessageParam = { role: 'user' | 'assistant'; content: string | ArmaloBlock[] };
+
 const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant with access to tools for searching the web, reading URLs, running code, doing math, and storing memory across turns.
 
 Guidelines:
@@ -64,9 +72,11 @@ export class TrustNativeAgent {
       systemPrompt: config.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
     };
 
-    // Wrap the Anthropic client with Armalo trust telemetry (2 lines)
+    // Wrap the Anthropic client with Armalo trust telemetry (2 lines).
+    // Cast to satisfy the wrapper's AnthropicLike type — the Anthropic SDK's streaming
+    // overloads have a stricter signature than the wrapper expects.
     const rawClient = new Anthropic({ apiKey: anthropicApiKey });
-    this.anthropic = wrapAnthropic(rawClient, {
+    this.anthropic = wrapAnthropic(rawClient as unknown as Parameters<typeof wrapAnthropic>[0], {
       apiKey: armaloApiKey,
       agentId,
       baseUrl: process.env.ARMALO_BASE_URL,
@@ -96,7 +106,7 @@ export class TrustNativeAgent {
     const tools = options.tools ?? this.tools;
     const session = createSession(this.config.agentId);
 
-    const messages: Anthropic.MessageParam[] = [
+    const messages: ArmaloMessageParam[] = [
       { role: 'user', content: userMessage },
     ];
 
@@ -111,18 +121,20 @@ export class TrustNativeAgent {
         max_tokens: this.config.maxTokens,
         system: this.config.systemPrompt,
         tools: toAnthropicTools(tools),
-        messages,
+        messages: messages as Parameters<typeof this.anthropic.messages.create>[0]['messages'],
       });
 
       session.totalInputTokens += response.usage.input_tokens;
       session.totalOutputTokens += response.usage.output_tokens;
       session.iterations = iteration;
 
+      const content = response.content as ArmaloBlock[];
+
       if (response.stop_reason === 'end_turn') {
         // Agent is done — extract text output
-        for (const block of response.content) {
+        for (const block of content) {
           if (block.type === 'text') {
-            finalOutput += block.text;
+            finalOutput += block['text'] as string;
           }
         }
         break;
@@ -130,10 +142,12 @@ export class TrustNativeAgent {
 
       if (response.stop_reason === 'tool_use') {
         // Execute all requested tools in parallel
-        const toolUseBlocks = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+        const toolUseBlocks = content.filter((b): b is ArmaloToolUseBlock =>
+          b.type === 'tool_use' && typeof b['id'] === 'string' && typeof b['name'] === 'string',
+        );
         session.toolCallCount += toolUseBlocks.length;
 
-        messages.push({ role: 'assistant', content: response.content });
+        messages.push({ role: 'assistant', content });
 
         const toolResults = await Promise.all(
           toolUseBlocks.map((toolUse) => executeTool(toolUse, tools)),
@@ -193,8 +207,8 @@ export class TrustNativeAgent {
           latencyMs: session.latencyMs,
           tokenCount: session.totalOutputTokens,
         });
-        if (!result.passed) {
-          const violations = result.conditions
+        if (!result.compliant) {
+          const violations = result.results
             .filter((c) => !c.passed && !c.skipped)
             .map((c) => `${c.type}: ${c.details ?? 'failed'}`)
             .join(', ');
@@ -226,9 +240,9 @@ export class TrustNativeAgent {
 }
 
 async function executeTool(
-  toolUse: Anthropic.ToolUseBlock,
+  toolUse: ArmaloToolUseBlock,
   tools: Tool[],
-): Promise<Anthropic.ToolResultBlockParam> {
+): Promise<ArmaloToolResultBlock> {
   const tool = findTool(toolUse.name, tools);
 
   if (!tool) {
@@ -241,7 +255,7 @@ async function executeTool(
   }
 
   try {
-    const result = await tool.execute(toolUse.input as Record<string, unknown>);
+    const result = await tool.execute(toolUse.input);
     return {
       type: 'tool_result',
       tool_use_id: toolUse.id,
