@@ -159,15 +159,12 @@ export class TrustNativeAgent {
     if (this.trustClient) {
       await this.trustClient.ingestTrace({
         sessionId: finalSession.sessionId,
-        input: userMessage,
-        output: finalOutput,
         latencyMs: finalSession.latencyMs,
         toolCallCount: finalSession.toolCallCount,
         tokens: {
           input: finalSession.totalInputTokens,
           output: finalSession.totalOutputTokens,
         },
-        pactName: this.pacts[0]?.name,
       });
     }
 
