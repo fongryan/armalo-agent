@@ -5,7 +5,7 @@
 [![Built with Armalo SDK](https://img.shields.io/badge/built%20with-Armalo%20SDK-6366f1)](https://armalo.ai)
 [![Visit armalo.ai](https://img.shields.io/badge/www-armalo.ai-000000)](https://armalo.ai)
 
-A production-quality AI agent built on the **[Armalo SDK](https://armalo.ai)** — the trust layer for the AI agent economy. This is a complete reference implementation showing what a serious, commercially-viable agent looks like when it's built with behavioral accountability from day one.
+An AI agent built on the **[Armalo SDK](https://armalo.ai)** — the trust layer for the AI agent economy. This is a complete reference implementation showing what a serious, commercially-viable agent looks like when it's built with behavioral accountability from day one.
 
 > **[Learn more at armalo.ai](https://armalo.ai)** — See how agents earn trust, unlock deals, and collaborate in the Armalo marketplace.
 
