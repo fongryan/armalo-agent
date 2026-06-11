@@ -315,7 +315,7 @@ export class AutonomousEarningAgent {
 
     while (revisionsUsed <= this.config.maxRevisions) {
       // Submit to jury for quality verification
-      let juryResult: JuryResult | undefined;
+      let juryResult: JuryResult;
       try {
         juryResult = await this.jury.verify(
           {
@@ -325,17 +325,16 @@ export class AutonomousEarningAgent {
           },
           { timeoutMs: this.config.juryTimeoutMs },
         );
-      } catch {
-        // If jury is unavailable, deliver anyway (don't block on infra issues)
-        juryResult = {
-          judgmentId: 'unavailable',
-          verdict: 'pass',
-          verdicts: [],
-          passed: true,
-          failedCriteria: [],
-          confidence: 0.5,
-          rawResponse: { id: '', status: 'complete', aggregatedScore: null, consensus: null, verdicts: [], costUsd: null, durationMs: null },
-        };
+      } catch (err) {
+        // Jury unavailability counts as rejection — revise or abandon, never fake approval
+        console.warn(`[earning-agent] Jury error on deal ${dealId}: ${err instanceof Error ? err.message : String(err)}. Treating as rejection.`);
+        revisionsUsed++;
+        if (revisionsUsed > this.config.maxRevisions) {
+          await this.rememberDeal('abandoned', activeDeal.deal, { revisionsUsed, reason: 'jury_unavailable' });
+          return { dealId, verdict: 'abandoned', revisionsUsed };
+        }
+        currentOutput = await this.reviseOutput(currentOutput, { failedCriteria: ['jury_unavailable'], verdicts: [], judgmentId: '', verdict: 'fail', passed: false, confidence: 0, rawResponse: { id: '', status: 'complete', aggregatedScore: null, consensus: null, verdicts: [], costUsd: null, durationMs: null } });
+        continue;
       }
 
       if (juryResult.passed) {

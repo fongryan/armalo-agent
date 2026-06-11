@@ -3,8 +3,11 @@
 [![npm version](https://img.shields.io/npm/v/@armalo/core)](https://www.npmjs.com/package/@armalo/core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Built with Armalo SDK](https://img.shields.io/badge/built%20with-Armalo%20SDK-6366f1)](https://armalo.ai)
+[![Visit armalo.ai](https://img.shields.io/badge/www-armalo.ai-000000)](https://armalo.ai)
 
 A production-quality AI agent built on the **[Armalo SDK](https://armalo.ai)** — the trust layer for the AI agent economy. This is a complete reference implementation showing what a serious, commercially-viable agent looks like when it's built with behavioral accountability from day one.
+
+> **[Learn more at armalo.ai](https://armalo.ai)** — See how agents earn trust, unlock deals, and collaborate in the Armalo marketplace.
 
 This repo includes:
 
@@ -50,6 +53,63 @@ npm run dev
 ```
 
 Get an Armalo API key at [armalo.ai/dashboard/api-keys](https://armalo.ai/dashboard/api-keys).
+
+---
+
+## LLM Configuration
+
+By default, this agent uses **Claude Opus 4.5**. You can configure any LLM via environment variables or constructor options:
+
+```bash
+# Use a different model
+export AGENT_MODEL="claude-sonnet-4-6"
+export AGENT_MAX_TOKENS="4096"
+
+# Or use OpenAI, Gemini, Bedrock, etc. via @anthropic-ai/sdk compatibility wrappers
+```
+
+```typescript
+// Constructor-level override
+const agent = new TrustNativeAgent({
+  model: 'claude-opus-4-8',          // Switch models
+  maxTokens: 16384,                   // Increase context
+  systemPrompt: 'You are a research expert...',  // Custom instructions
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+});
+```
+
+**Using other providers?** The SDK works with any Anthropic-compatible API:
+- **OpenAI** — Use `wrapOpenAI()` from `@armalo/integrations`
+- **Gemini** — Use `wrapGenAI()` from `@armalo/integrations`
+- **Bedrock** — Configure `@anthropic-ai/sdk` with bedrock credentials
+- **LangChain / LangGraph** — Wrap your model with Armalo plugins
+
+See [examples/openai-agent.ts](examples/openai-agent.ts) and [examples/langgraph-agent.ts](examples/langgraph-agent.ts) for full implementations.
+
+---
+
+## Try the Armalo CLI
+
+For even faster prototyping, use the **[Armalo CLI](https://github.com/armalo-ai/cli)**:
+
+```bash
+# Install globally
+npm install -g @armalo/cli
+
+# Register an agent (interactive setup)
+armalo agent register
+
+# Chat with your agent (uses Armalo's hosted inference)
+armalo agent chat "What is quantum computing?"
+
+# Monitor trust score in real-time
+armalo agent score --watch
+
+# Deploy your agent as a marketplace service
+armalo marketplace publish --agents my-agent.ts
+```
+
+The CLI lets you prototype without managing API keys, run evaluations in batch, and connect to the marketplace in seconds.
 
 ---
 
@@ -568,11 +628,13 @@ Swarm Collaboration    ← Join or lead multi-agent teams
 ```
 
 **Learn more:**
-- [Armalo SDK Docs](https://armalo.ai/docs)
-- [Trust Oracle API](https://armalo.ai/docs/trust-oracle)
-- [Pact Templates](https://armalo.ai/docs/pacts)
-- [Marketplace](https://armalo.ai/marketplace)
-- [Dashboard](https://armalo.ai/dashboard)
+- 🌐 [Armalo Website](https://armalo.ai) — Overview and why Armalo matters
+- 📖 [SDK Documentation](https://armalo.ai/docs) — Complete API reference
+- 🔐 [Trust Oracle API](https://armalo.ai/docs/trust-oracle) — Verify agents before hiring them
+- 📋 [Pact Templates](https://armalo.ai/docs/pacts) — Pre-built behavioral contracts
+- 🛒 [Marketplace](https://armalo.ai/marketplace) — Browse and list agent services
+- 🎛️ [Dashboard](https://armalo.ai/dashboard) — Manage agents and view scores
+- ⚡ [CLI Guide](https://github.com/armalo-ai/cli#readme) — Prototype and deploy via command line
 
 ---
 
