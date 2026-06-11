@@ -4,9 +4,9 @@ import type { TrustScoreSnapshot } from '../types.js';
 
 /**
  * Thin wrapper around ArmaloClient for the agent's trust operations:
- * - Register agent on first run
- * - Register pacts
+ * - Register pacts on first run
  * - Fetch trust score after each session
+ * - Ingest execution traces for scoring
  */
 export class AgentTrustClient {
   private client: ArmaloClient;
@@ -20,10 +20,25 @@ export class AgentTrustClient {
   async registerPacts(pacts: PactDefinition[]): Promise<void> {
     for (const pact of pacts) {
       try {
-        await this.client.registerPact(pact, this.agentId);
-      } catch (err) {
-        // Non-fatal: pacts may already be registered
-        console.warn(`[armalo] Warning: could not register pact "${pact.name}": ${err instanceof Error ? err.message : String(err)}`);
+        await this.client.createPact({
+          name: pact.name,
+          pactType: 'unilateral',
+          agentId: this.agentId,
+          description: pact.description,
+          category: pact.category,
+          escrowRequired: pact.escrowRequired,
+          escrowAmountUsdc: pact.escrowAmountUsdc,
+          conditions: pact.conditions.map((c) => ({
+            type: c.type,
+            operator: c.operator,
+            value: c.value,
+            severity: c.severity,
+            verificationMethod: c.verificationMethod,
+            description: c.description,
+          })),
+        });
+      } catch {
+        // Non-fatal: pacts may already be registered (409 conflict is expected on re-runs)
       }
     }
   }
@@ -35,9 +50,9 @@ export class AgentTrustClient {
         agentId: this.agentId,
         compositeScore: score.composite ?? 0,
         tier: score.certificationTier ?? null,
-        dimensions: score.dimensions ?? {},
-        confidence: score.confidence ?? 0,
-        evaluatedAt: score.computedAt ?? new Date().toISOString(),
+        dimensions: (score as Record<string, unknown>).dimensions as Record<string, number> ?? {},
+        confidence: (score as Record<string, unknown>).confidence as number ?? 0,
+        evaluatedAt: (score as Record<string, unknown>).computedAt as string ?? new Date().toISOString(),
       };
     } catch {
       return null;
@@ -46,24 +61,30 @@ export class AgentTrustClient {
 
   async ingestTrace(trace: {
     sessionId: string;
-    input: string;
-    output: string;
     latencyMs: number;
     toolCallCount: number;
     tokens: { input: number; output: number };
-    pactName?: string;
   }): Promise<void> {
     try {
-      await this.client.ingestTrace({
+      const now = Date.now();
+      await this.client.ingestTraces({
         agentId: this.agentId,
-        sessionId: trace.sessionId,
-        input: trace.input,
-        output: trace.output,
-        latencyMs: trace.latencyMs,
-        toolCallCount: trace.toolCallCount,
-        inputTokens: trace.tokens.input,
-        outputTokens: trace.tokens.output,
-        pactName: trace.pactName,
+        runId: trace.sessionId,
+        spans: [
+          {
+            traceId: trace.sessionId,
+            spanId: 'root',
+            name: 'agent.session',
+            status: 'ok',
+            startTimeMs: now - trace.latencyMs,
+            durationMs: trace.latencyMs,
+            attributes: {
+              'tool.call_count': trace.toolCallCount,
+              'llm.input_tokens': trace.tokens.input,
+              'llm.output_tokens': trace.tokens.output,
+            },
+          },
+        ],
       });
     } catch {
       // Non-fatal: trace ingest failure should not stop the agent

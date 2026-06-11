@@ -31,13 +31,15 @@ async function main() {
   console.log('\n\x1b[1mRegistering agent with Armalo...\x1b[0m');
 
   const agentName = process.argv[2] ?? 'My Armalo Agent';
+  const externalId = `armalo-agent-${Date.now()}`;
 
   try {
-    const agent = await client.createAgent({
+    const agent = await client.registerAgent({
+      externalId,
       name: agentName,
       description: 'Trust-native AI agent built with armalo-agent',
       capabilities: ['web_search', 'code_execution', 'data_analysis'],
-      model: process.env.AGENT_MODEL ?? 'claude-opus-4-5',
+      githubUrl: 'https://github.com/fongryan/armalo-agent',
     });
 
     console.log(`\n\x1b[32m✓\x1b[0m Agent registered: \x1b[1m${agent.id}\x1b[0m`);
@@ -46,7 +48,21 @@ async function main() {
 
     // Register the default safety pact
     console.log('\nRegistering safety pact...');
-    await client.registerPact(SAFETY_DEFAULTS, agent.id);
+    await client.createPact({
+      name: SAFETY_DEFAULTS.name,
+      pactType: 'unilateral',
+      agentId: agent.id,
+      description: SAFETY_DEFAULTS.description,
+      category: SAFETY_DEFAULTS.category,
+      conditions: SAFETY_DEFAULTS.conditions.map((c) => ({
+        type: c.type,
+        operator: c.operator,
+        value: c.value,
+        severity: c.severity,
+        verificationMethod: c.verificationMethod,
+        description: c.description,
+      })),
+    });
     console.log('\x1b[32m✓\x1b[0m Safety Defaults pact registered');
 
     // Save to .env
