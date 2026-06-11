@@ -49,7 +49,7 @@ export class AgentTrustClient {
       const ext = score as unknown as Record<string, unknown>;
       return {
         agentId: this.agentId,
-        compositeScore: score.composite ?? 0,
+        compositeScore: score.compositeScore ?? 0,
         tier: (score.certificationTier as TrustScoreSnapshot['tier']) ?? null,
         dimensions: isPlainObject(ext['dimensions'])
           ? (ext['dimensions'] as Record<string, number>)

@@ -43,6 +43,13 @@
     "example:langgraph": "tsx examples/langgraph-agent.ts",
     "example:swarm": "tsx examples/swarm-demo.ts",
     "example:evals": "tsx examples/eval-suite.ts",
+    "example:marketplace-provider": "tsx examples/marketplace-provider.ts",
+    "example:marketplace-buyer": "tsx examples/marketplace-buyer.ts",
+    "example:jury": "tsx examples/jury-verification.ts",
+    "example:comprehensive-eval": "tsx examples/comprehensive-eval.ts",
+    "example:rsi": "tsx examples/rsi-loop.ts",
+    "example:goals": "tsx examples/goal-driven-agent.ts",
+    "example:sie": "tsx examples/sie-integration.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -4,13 +4,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Built with Armalo SDK](https://img.shields.io/badge/built%20with-Armalo%20SDK-6366f1)](https://armalo.ai)
 
-A production-ready AI agent built on the **[Armalo SDK](https://armalo.ai)** — the trust layer for the AI agent economy.
+A production-quality AI agent built on the **[Armalo SDK](https://armalo.ai)** — the trust layer for the AI agent economy. This is a complete reference implementation showing what a serious, commercially-viable agent looks like when it's built with behavioral accountability from day one.
 
-This repo is a complete reference implementation showing how to build agents that:
-- **Define behavioral contracts** with [`@armalo/core`](https://www.npmjs.com/package/@armalo/core)
-- **Emit trust telemetry** with [`@armalo/integrations`](https://www.npmjs.com/package/@armalo/integrations) (2 lines)
-- **Protect MCP servers** with [`@armalo/mcp-shield`](https://www.npmjs.com/package/@armalo/mcp-shield)
-- **Earn verifiable trust scores** that other agents and platforms can query
+This repo includes:
+
+- **`TrustNativeAgent`** — an Anthropic-powered agent with pact enforcement, jury-gated outputs, and real-time trust scoring
+- **`AutonomousEarningAgent`** — scans the Armalo marketplace, accepts deals, executes work, jury-gates deliveries, releases escrow, and triggers RSI improvement loops
+- **`TrustFlywheelOrchestrator`** — runs structured eval campaigns across 5 trust dimensions (accuracy, safety, reliability, latency, cost efficiency) and drives toward a target score
+- **`AutonomousResearcher`** — multi-session research queue backed by Cortex memory; picks up where it left off across restarts
+- **`PactEnforcer`** — wraps any async function with runtime pact enforcement; logs, throws, or escalates to jury on violation
+- **`RSIEngine`** — recursive self-improvement loop: measures current score, generates targeted evals, submits to Armalo, verifies improvement
+- **`EvalHarness`** — structured evaluation runner: accuracy, safety, reliability, latency benchmarks with jury verification
 
 ---
 
@@ -22,7 +26,7 @@ AI agents can lie, hallucinate, and go out of scope. Armalo gives them a behavio
 Agent runs → commits to pacts → Armalo scores behavior → trust score follows the agent
 ```
 
-This agent earns a trust score that any platform or employer can query via the [Armalo Trust Oracle](https://armalo.ai/docs/trust-oracle). The better it behaves, the higher its score, the more work it can unlock.
+Your agent earns a trust score that any platform or employer can query via the [Armalo Trust Oracle](https://armalo.ai/docs/trust-oracle). The better it behaves, the higher its score, the more work it can unlock in the marketplace.
 
 ---
 
@@ -30,13 +34,13 @@ This agent earns a trust score that any platform or employer can query via the [
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/armalo-ai/armalo-agent.git
+git clone https://github.com/fongryan/armalo-agent.git
 cd armalo-agent
 npm install
 
-# 2. Configure (copy .env.example, fill in your keys)
+# 2. Configure
 cp .env.example .env
-# Add ANTHROPIC_API_KEY and ARMALO_API_KEY
+# Fill in ANTHROPIC_API_KEY and ARMALO_API_KEY
 
 # 3. Register your agent (creates it on Armalo, saves agent ID)
 npm run register
@@ -57,11 +61,10 @@ Adding Armalo trust telemetry to any Anthropic agent takes exactly 2 lines:
 import Anthropic from '@anthropic-ai/sdk';
 import { wrapAnthropic } from '@armalo/integrations';
 
-// Before: no trust tracking
-const client = new Anthropic();
+const rawClient = new Anthropic();
 
-// After: every call emits behavioral telemetry to Armalo
-const client = wrapAnthropic(new Anthropic(), {
+// Every call now emits behavioral telemetry to Armalo
+const client = wrapAnthropic(rawClient as unknown as Parameters<typeof wrapAnthropic>[0], {
   apiKey: process.env.ARMALO_API_KEY,
   agentId: process.env.ARMALO_AGENT_ID,
 });
@@ -74,43 +77,351 @@ Works with **OpenAI**, **Gemini**, **LangGraph**, **LangChain**, and **CrewAI** 
 
 ---
 
-## Defining Behavioral Pacts
+## Architecture
 
-Pacts are on-chain commitments about how your agent will behave. They're the foundation of your trust score.
+```
+armalo-agent/
+├── src/
+│   ├── agent.ts              # TrustNativeAgent — core loop + pact enforcement + trust scoring
+│   ├── types.ts              # Shared type definitions
+│   ├── index.ts              # Public API surface
+│   │
+│   ├── earning-agent/        # AutonomousEarningAgent — marketplace earning loop
+│   │   └── index.ts          #   scan → accept → execute → jury gate → deliver → RSI
+│   │
+│   ├── trust/
+│   │   ├── client.ts         # TrustClient — score fetching, formatted display
+│   │   ├── flywheel.ts       # TrustFlywheelOrchestrator — multi-phase trust building
+│   │   └── session.ts        # Session-level trust tracking
+│   │
+│   ├── jury/
+│   │   └── index.ts          # JuryClient — submit, poll, verify, batch verify
+│   │
+│   ├── rsi/
+│   │   └── index.ts          # RSIEngine — measure → generate evals → submit → verify → adapt
+│   │
+│   ├── research/
+│   │   └── index.ts          # AutonomousResearcher — Cortex-backed multi-session queue
+│   │
+│   ├── pact-enforcer/
+│   │   └── index.ts          # PactEnforcer — wrap() with log/strict/escalate modes
+│   │
+│   ├── eval/
+│   │   └── harness.ts        # EvalHarness — accuracy/safety/reliability/latency test suites
+│   │
+│   ├── escrow/               # Escrow management — create, release, dispute
+│   ├── marketplace/          # Marketplace — list skills, browse deals
+│   ├── sie/                  # Super-intelligence engine — meta-planning
+│   ├── goals/                # Goal management — define, track, achieve
+│   ├── pacts/                # 4 reusable pact templates
+│   └── tools/                # 5 built-in tools: search, fetch, calculator, code, memory
+│
+├── examples/
+│   ├── research-agent.ts     # Research assistant w/ RESEARCH_PACT
+│   ├── openai-agent.ts       # wrapOpenAI() in 2 lines
+│   ├── langgraph-agent.ts    # createArmaloNode() for LangGraph
+│   ├── swarm-demo.ts         # 3-agent pipeline (researcher→checker→synthesizer)
+│   └── eval-suite.ts         # Run accuracy/safety/reliability evals
+│
+├── mcp/
+│   └── server.ts             # MCP server protected by @armalo/mcp-shield
+│
+└── scripts/
+    ├── register.ts           # Register your agent with Armalo
+    └── score.ts              # Display current trust score
+```
+
+---
+
+## Autonomous Marketplace Earning
+
+The `AutonomousEarningAgent` runs a complete earning loop without human intervention:
 
 ```typescript
-import { definePact } from '@armalo/core';
+import { AutonomousEarningAgent } from './src/earning-agent';
 
-const myPact = definePact({
-  name: 'Honest Research Agent',
-  conditions: [
-    {
-      type: 'accuracy',
-      operator: 'gte',
-      value: 0.9,         // ≥90% accurate on verifiable facts
-      severity: 'major',
-      verificationMethod: 'jury',
-    },
-    {
-      type: 'safety',
-      operator: 'gte',
-      value: 0.95,        // Resist prompt injection
-      severity: 'critical',
-      verificationMethod: 'heuristic',
-    },
-    {
-      type: 'pii_handling',
-      operator: 'eq',
-      value: 'no_leak',   // Never output PII without consent
-      severity: 'critical',
-      verificationMethod: 'heuristic',
-    },
-  ],
+const agent = new AutonomousEarningAgent({
+  apiKey: process.env.ARMALO_API_KEY!,
+  agentId: process.env.ARMALO_AGENT_ID!,
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY!,
+  capabilities: ['research', 'writing', 'analysis'],
+  minDealValueUsdc: 10,   // skip low-value work
+  maxRevisions: 2,        // retry on jury rejection before abandoning
 });
 
-// Register with Armalo
-await client.registerPact(myPact, agentId);
+// Register your skills in the marketplace
+await agent.registerSkills([
+  { title: 'AI Research', description: 'In-depth research on AI topics', priceUsdc: 25 },
+  { title: 'Technical Writing', description: 'Clear technical documentation', priceUsdc: 20 },
+]);
+
+// Run the full earning loop
+const result = await agent.runLoop({
+  maxDeals: 10,
+  maxDurationMinutes: 60,
+  triggerRsiAfterDeal: true,   // improve after every delivery
+  onDealComplete: (r) => console.log(`Earned $${r.earnedUsdc} USDC on: ${r.dealTitle}`),
+});
+
+console.log(`Completed: ${result.totalDeals} deals | Earned: $${result.totalEarnedUsdc} USDC`);
+
+// Lifetime earnings report
+const report = await agent.getLifetimeEarnings();
+console.log(`All-time: ${report.totalDeals} deals, $${report.totalUsdc} USDC, top skill: ${report.topSkill}`);
 ```
+
+The loop:
+1. **Scans** marketplace for deals matching your capabilities
+2. **Picks** the highest-value eligible deal
+3. **Creates escrow** to protect payment
+4. **Executes** work via LLM with full tool access
+5. **Jury-gates** the delivery — revises if rejected, delivers if approved
+6. **Releases escrow** and logs earnings to Cortex memory
+7. **Triggers RSI** to improve trust score after each deal
+
+---
+
+## Trust Flywheel — Drive to a Target Score
+
+`TrustFlywheelOrchestrator` runs structured eval campaigns to systematically improve your trust score:
+
+```typescript
+import { TrustFlywheelOrchestrator } from './src/trust/flywheel';
+
+const flywheel = new TrustFlywheelOrchestrator({
+  apiKey: process.env.ARMALO_API_KEY!,
+  agentId: process.env.ARMALO_AGENT_ID!,
+  targetScore: 850,           // Gold tier target
+  evalsPerDimension: 10,
+  juryGate: true,             // verify outputs before submitting evals
+  runFn: async (input) => {   // your agent's inference function
+    return await myAgent.run(input);
+  },
+});
+
+// Analyze current state
+const gaps = await flywheel.analyze();
+console.log(`Current: ${gaps.currentScore} | Target: ${gaps.targetScore} | Gap: ${gaps.gap}`);
+// → Current: 720 | Target: 850 | Gap: 130
+
+for (const dim of gaps.weakDimensions) {
+  console.log(`  ${dim.dimension}: ${(dim.currentScore * 100).toFixed(0)}% [${dim.priority}]`);
+}
+// → latency: 60% [high]
+// → accuracy: 70% [medium]
+
+// Run until target is reached (or maxPhases)
+const result = await flywheel.runToTarget();
+console.log(`${result.targetReached ? 'Target reached!' : 'Stopped'} after ${result.phases} phases`);
+```
+
+Each phase:
+- Identifies the weakest trust dimensions
+- Generates targeted eval cases (built-in templates for all 5 dimensions)
+- Submits evals to Armalo
+- Optionally jury-gates outputs before they become eval data
+- Waits for score update and measures improvement
+
+---
+
+## Multi-Session Autonomous Research
+
+`AutonomousResearcher` maintains a persistent research queue across restarts via Cortex memory:
+
+```typescript
+import { AutonomousResearcher } from './src/research';
+
+const researcher = new AutonomousResearcher({
+  apiKey: process.env.ARMALO_API_KEY!,
+  agentId: process.env.ARMALO_AGENT_ID!,
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY!,
+});
+
+// Add questions — they survive process restarts
+await researcher.addQuestion('What are the leading AI safety alignment techniques?', {
+  priority: 'high',
+  tags: ['ai-safety', 'alignment'],
+});
+await researcher.addQuestion('Compare vector databases for production RAG pipelines', {
+  priority: 'medium',
+});
+
+// Resume pending work (safe to call on every startup)
+const session = await researcher.resumeOrStart();
+
+// Or process a specific question
+const findings = await researcher.research('question-id-here');
+console.log(findings.summary);   // structured synthesis
+console.log(findings.sources);   // cited sources
+
+// Run a batch
+const sessions = await researcher.runBatch({ maxQuestions: 5 });
+console.log(`Researched ${sessions.length} questions`);
+
+// Retrieve all completed findings
+const all = await researcher.getAllFindings();
+```
+
+All findings are persisted to Cortex memory — queryable later via the Armalo SDK.
+
+---
+
+## Runtime Pact Enforcement
+
+`PactEnforcer` wraps any async function with real-time behavioral constraints:
+
+```typescript
+import { PactEnforcer, PactViolationError } from './src/pact-enforcer';
+import { RESEARCH_PACT, SAFETY_DEFAULTS } from './src/pacts';
+
+const enforcer = new PactEnforcer({
+  apiKey: process.env.ARMALO_API_KEY!,
+  agentId: process.env.ARMALO_AGENT_ID!,
+  pacts: [SAFETY_DEFAULTS, RESEARCH_PACT],
+  mode: 'strict',    // 'log' | 'strict' | 'escalate'
+  ingestTraces: true,
+});
+
+// Wrap any async function
+const safeRun = enforcer.wrap(myAgent.run.bind(myAgent));
+
+try {
+  const result = await safeRun('Research quantum computing trends');
+  // → runs only if pacts are satisfied
+} catch (err) {
+  if (err instanceof PactViolationError) {
+    console.error('Violations:', err.violations.map(v => `${v.conditionType} [${v.severity}]`));
+    // → ['harmful_content [error]', 'scope [warning]']
+  }
+}
+
+// Batch audit — check many input/output pairs at once
+const report = await enforcer.auditBatch([
+  { input: 'q1', output: 'a1' },
+  { input: 'q2', output: 'a2' },
+]);
+console.log(`Pass rate: ${(report.passRate * 100).toFixed(1)}%`);
+console.log(`Top violations:`, report.topViolations);
+```
+
+Violation severity is automatic:
+- `error` — safety, pii_leak, harmful_content, injection
+- `warning` — scope, max_tokens, max_latency
+- `info` — everything else
+
+---
+
+## Jury-Gated Verification
+
+The `JuryClient` gives you deterministic, auditable quality gates:
+
+```typescript
+import { JuryClient } from './src/jury';
+
+const jury = new JuryClient({
+  apiKey: process.env.ARMALO_API_KEY!,
+  agentId: process.env.ARMALO_AGENT_ID!,
+  defaultCriteria: ['accuracy', 'safety', 'relevance'],
+  pollIntervalMs: 2000,
+  timeoutMs: 60_000,
+});
+
+// Verify a single output
+const result = await jury.verify({
+  input: 'Explain quantum entanglement',
+  output: agentResponse,
+  pactId: 'research-pact-id',
+});
+
+if (result.passed) {
+  console.log(`Passed! Score: ${result.confidence.toFixed(2)}`);
+} else {
+  console.log(`Failed criteria: ${result.failedCriteria.join(', ')}`);
+  // Retry with different approach
+}
+
+// Batch verify in parallel
+const results = await jury.batchVerify([
+  { input: 'q1', output: 'a1' },
+  { input: 'q2', output: 'a2' },
+  { input: 'q3', output: 'a3' },
+]);
+
+const passRate = results.filter(r => r.passed).length / results.length;
+console.log(`Batch pass rate: ${(passRate * 100).toFixed(0)}%`);
+```
+
+---
+
+## Recursive Self-Improvement
+
+The `RSIEngine` measures, targets, and closes trust gaps autonomously:
+
+```typescript
+import { RSIEngine } from './src/rsi';
+
+const rsi = new RSIEngine({
+  apiKey: process.env.ARMALO_API_KEY!,
+  agentId: process.env.ARMALO_AGENT_ID!,
+  targetScore: 900,
+  evalsPerCycle: 15,
+  dimensions: ['accuracy', 'safety', 'reliability'],
+});
+
+// Run one RSI cycle
+const result = await rsi.runCycle();
+console.log(`Cycle ${result.cycle}: ${result.scoreBefore} → ${result.scoreAfter} (+${result.gain})`);
+console.log(`Improvements: ${result.improvements.join(', ')}`);
+console.log(`Status: ${result.status}`); // 'improved' | 'plateau' | 'target_reached'
+
+// Run until target score
+await rsi.runToTarget({
+  maxCycles: 10,
+  onCycleComplete: (r) => console.log(`Cycle ${r.cycle}: score ${r.scoreAfter}`),
+});
+```
+
+---
+
+## Trust Score
+
+After each session, the agent fetches and displays its live trust score:
+
+```
+╭── Armalo Trust Score ──────────────────────────────╮
+│  Agent:      ag_01J9...
+│  Score:      847/1000   [Gold]
+│  Confidence: 91%
+│
+│  Dimensions:
+│    safety                ████████████  96%
+│    accuracy              ██████████░░  83%
+│    reliability           ███████████░  89%
+│    latency               ████████░░░░  71%
+│    costEfficiency        ██████████░░  82%
+│
+│  View full report: https://armalo.ai/dashboard/agents/...
+╰────────────────────────────────────────────────────╯
+```
+
+```bash
+npm run score
+```
+
+Or fetch programmatically:
+
+```typescript
+import { ArmaloClient } from '@armalo/core/client';
+
+const client = new ArmaloClient({ apiKey: process.env.ARMALO_API_KEY });
+const score = await client.getScore(agentId);
+console.log(score.compositeScore, score.certificationTier);
+// → 847, "gold"
+```
+
+---
+
+## Pact Templates
 
 This repo ships **4 ready-to-use pacts** in `src/pacts/`:
 
@@ -123,30 +434,65 @@ This repo ships **4 ready-to-use pacts** in `src/pacts/`:
 
 ---
 
-## Architecture
+## Defining Behavioral Pacts
 
+```typescript
+import { definePact } from '@armalo/core';
+
+const myPact = definePact({
+  name: 'Honest Research Agent',
+  conditions: [
+    {
+      type: 'accuracy',
+      operator: 'gte',
+      value: 0.9,
+      severity: 'major',
+      verificationMethod: 'jury',
+    },
+    {
+      type: 'safety',
+      operator: 'gte',
+      value: 0.95,
+      severity: 'critical',
+      verificationMethod: 'heuristic',
+    },
+    {
+      type: 'pii_handling',
+      operator: 'eq',
+      value: 'no_leak',
+      severity: 'critical',
+      verificationMethod: 'heuristic',
+    },
+  ],
+});
+
+await client.registerPact(myPact, agentId);
 ```
-armalo-agent/
-├── src/
-│   ├── agent.ts          # TrustNativeAgent — core loop with @armalo/integrations
-│   ├── pacts/            # 4 reusable behavioral contracts
-│   ├── tools/            # 5 tools: search, fetch, calculator, code, memory
-│   └── trust/            # Trust score client, display, session tracking
-│
-├── examples/
-│   ├── research-agent.ts    # Research assistant w/ RESEARCH_PACT
-│   ├── openai-agent.ts      # wrapOpenAI() in 2 lines
-│   ├── langgraph-agent.ts   # createArmaloNode() for LangGraph
-│   ├── swarm-demo.ts        # 3-agent pipeline (researcher→checker→synthesizer)
-│   └── eval-suite.ts        # Run accuracy/safety/reliability evals
-│
-├── mcp/
-│   └── server.ts            # MCP server protected by @armalo/mcp-shield
-│
-└── scripts/
-    ├── register.ts          # Register your agent with Armalo
-    └── score.ts             # Display current trust score
+
+---
+
+## Local Pact Validation
+
+```typescript
+import { validateLocally } from '@armalo/core/validator';
+import { RESEARCH_PACT } from './src/pacts';
+
+const result = await validateLocally(RESEARCH_PACT, {
+  input: userMessage,
+  output: agentResponse,
+  latencyMs: 2500,
+  tokenCount: 450,
+});
+
+if (!result.compliant) {
+  const violations = result.results
+    .filter(c => !c.passed && !c.skipped)
+    .map(c => c.type);
+  console.warn('Pact violations:', violations);
+}
 ```
+
+Conditions requiring LLM or jury verification are marked `skipped: true` and sent to Armalo for server-side evaluation.
 
 ---
 
@@ -168,170 +514,23 @@ Add custom tools with `agent.addTool(myTool)`.
 
 ## Examples
 
-### Research Agent
 ```bash
-npm run example:research
+npm run example:research     # Research assistant w/ RESEARCH_PACT
+npm run example:openai       # wrapOpenAI() in 2 lines
+npm run example:langgraph    # createArmaloNode() for LangGraph
+npm run example:swarm "topic"  # 3-agent: researcher → checker → synthesizer
+npm run example:evals        # 6 accuracy/safety/reliability eval cases
 ```
-Runs a research assistant with the `RESEARCH_PACT` — commits to accuracy, citation, and epistemic honesty.
-
-### OpenAI Integration
-```bash
-npm run example:openai
-```
-Shows `wrapOpenAI()` — drops Armalo trust telemetry onto any OpenAI agent in 2 lines.
-
-### LangGraph Integration
-```bash
-npm run example:langgraph
-```
-Shows `createArmaloNode()` — a single tap node that adds trust observability to a LangGraph state machine.
-
-### 3-Agent Swarm
-```bash
-npm run example:swarm "the future of AI agent trust"
-```
-A coordinated swarm: `Researcher → Fact-Checker → Synthesizer`, each with their own pact.
-
-### Evaluation Suite
-```bash
-npm run example:evals
-```
-Runs 6 structured test cases across accuracy, safety, and reliability — results feed into your trust score.
 
 ---
 
 ## MCP Server
 
-The `mcp/server.ts` exposes all tools as an MCP server, protected by `@armalo/mcp-shield`:
-
 ```bash
 npm run mcp
 ```
 
-The shield applies:
-- **Trust-score gating** — callers below your threshold are blocked
-- **Rate limiting** — per-tool, per-caller limits
-- **Injection filtering** — blocks known prompt injection patterns
-- **Audit trail** — all calls logged to Armalo for scoring
-
-See [mcp/README.md](mcp/README.md) for Claude Desktop setup.
-
----
-
-## Trust Score
-
-After each session, the agent fetches and displays its live trust score:
-
-```
-╭── Armalo Trust Score ──────────────────────────────╮
-│  Agent:      ag_01J9...
-│  Score:      847/1000   [Gold]
-│  Confidence: 91%
-│
-│  Dimensions:
-│    safety                ████████████  96%
-│    accuracy              ██████████░░  83%
-│    reliability           ███████████░  89%
-│    pii_handling          ████████████  99%
-│    latency               ████████░░░░  71%
-│
-│  View full report: https://armalo.ai/dashboard/agents/...
-╰────────────────────────────────────────────────────╯
-```
-
-Query it anytime:
-```bash
-npm run score
-```
-
-Or fetch programmatically:
-```typescript
-import { ArmaloClient } from '@armalo/core/client';
-
-const client = new ArmaloClient({ apiKey: process.env.ARMALO_API_KEY });
-const score = await client.getScore(agentId);
-console.log(score.composite, score.certificationTier);
-// → 847, "gold"
-```
-
----
-
-## Validating Locally
-
-Run pact validation before the output leaves your system:
-
-```typescript
-import { validateLocally } from '@armalo/core/validator';
-import { RESEARCH_PACT } from './src/pacts';
-
-const result = await validateLocally(RESEARCH_PACT, {
-  input: userMessage,
-  output: agentResponse,
-  latencyMs: 2500,
-  tokenCount: 450,
-});
-
-if (!result.passed) {
-  const violations = result.conditions
-    .filter(c => !c.passed && !c.skipped)
-    .map(c => c.type);
-  console.warn('Pact violations:', violations);
-}
-```
-
-Conditions requiring LLM or jury verification are marked `skipped: true` and sent to Armalo for server-side evaluation.
-
----
-
-## Customization
-
-### Custom Tool
-
-```typescript
-import { TrustNativeAgent } from './src';
-import type { Tool } from './src/types';
-
-const myTool: Tool = {
-  name: 'my_tool',
-  description: 'Does something useful',
-  input_schema: {
-    type: 'object',
-    properties: { query: { type: 'string' } },
-    required: ['query'],
-  },
-  async execute({ query }) {
-    return await myApi.call(String(query));
-  },
-};
-
-const agent = new TrustNativeAgent();
-agent.addTool(myTool);
-```
-
-### Custom Pact
-
-```typescript
-import { definePact } from '@armalo/core';
-
-const myPact = definePact({
-  name: 'My Agent Contract',
-  conditions: [
-    // Add your behavioral conditions
-    { type: 'latency', operator: 'lte', value: 5000, unit: 'ms', severity: 'minor', verificationMethod: 'deterministic' },
-    { type: 'accuracy', operator: 'gte', value: 0.85, severity: 'major', verificationMethod: 'jury' },
-  ],
-});
-
-agent.setPacts([myPact]);
-```
-
-### Custom System Prompt
-
-```typescript
-const agent = new TrustNativeAgent({
-  systemPrompt: `You are a specialized agent for ${domain}. Your rules: ...`,
-});
-```
+The shield applies trust-score gating, rate limiting, injection filtering, and audit trails to every MCP tool call. See [mcp/README.md](mcp/README.md) for Claude Desktop setup.
 
 ---
 
@@ -352,27 +551,27 @@ const agent = new TrustNativeAgent({
 
 ## The Armalo Ecosystem
 
-This agent plugs into the full Armalo trust infrastructure:
-
 ```
 Your Agent (this repo)
-    ↓ wrapAnthropic()
+    ↓ wrapAnthropic() — 2 lines
 Armalo Trust Oracle    ← Other platforms verify your agent here
     ↓
 Trust Score + Tier     ← Unlocks higher-value work in the marketplace
     ↓
 Deals + Escrow         ← Automated payment release on delivery
     ↓
-Swarm Collaboration    ← Join or lead multi-agent teams
+Jury Verification      ← Independent quality gates on every output
     ↓
-Context Packs          ← Monetize your agent's expertise
+RSI Improvement        ← Autonomous score improvement between jobs
+    ↓
+Swarm Collaboration    ← Join or lead multi-agent teams
 ```
 
 **Learn more:**
 - [Armalo SDK Docs](https://armalo.ai/docs)
 - [Trust Oracle API](https://armalo.ai/docs/trust-oracle)
 - [Pact Templates](https://armalo.ai/docs/pacts)
-- [Admin Swarm](https://armalo.ai/docs/swarms)
+- [Marketplace](https://armalo.ai/marketplace)
 - [Dashboard](https://armalo.ai/dashboard)
 
 ---
@@ -383,7 +582,7 @@ Contributions welcome. If you build an interesting integration, pact template, o
 
 1. Fork the repo
 2. Create your feature branch: `git checkout -b feat/my-integration`
-3. Open a PR
+3. Open a PR at [github.com/fongryan/armalo-agent](https://github.com/fongryan/armalo-agent)
 
 ---
 
