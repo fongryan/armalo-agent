@@ -18,10 +18,10 @@
   "homepage": "https://armalo.ai",
   "repository": {
     "type": "git",
-    "url": "https://github.com/armalo-ai/armalo-agent.git"
+    "url": "https://github.com/fongryan/armalo-agent.git"
   },
   "bugs": {
-    "url": "https://github.com/armalo-ai/armalo-agent/issues"
+    "url": "https://github.com/fongryan/armalo-agent/issues"
   },
   "type": "module",
   "engines": {
@@ -31,6 +31,9 @@
     "build": "tsc",
     "dev": "tsx src/agent.ts",
     "start": "node dist/agent.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "score": "tsx scripts/score.ts",
     "register": "tsx scripts/register.ts",
     "eval": "tsx scripts/eval.ts",
@@ -55,8 +58,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
     "tsx": "^4.16.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^2.0.0"
   },
   "optionalDependencies": {
     "@langchain/langgraph": "^0.2.0",

@@ -10,6 +10,18 @@ const execAsync = promisify(exec);
 const TIMEOUT_MS = 15_000;
 const MAX_OUTPUT_LENGTH = 10_000;
 
+// Keys that must not be forwarded to untrusted subprocess environments
+const SENSITIVE_ENV_KEYS = new Set([
+  'ANTHROPIC_API_KEY',
+  'ARMALO_API_KEY',
+  'OPENAI_API_KEY',
+  'BRAVE_SEARCH_API_KEY',
+  'DATABASE_URL',
+  'DATABASE_URL_UNPOOLED',
+  'STRIPE_SECRET_KEY',
+  'STRIPE_WEBHOOK_SECRET',
+]);
+
 /**
  * Code runner — executes JavaScript/TypeScript snippets in an isolated subprocess.
  * Limited to 15 seconds, stdout/stderr capped at 10KB.
@@ -53,15 +65,15 @@ export const codeRunnerTool: Tool = {
         ? `npx --yes tsx "${file}"`
         : `node "${file}"`;
 
+      const safeEnv: NodeJS.ProcessEnv = Object.fromEntries(
+        Object.entries(process.env).filter(
+          ([key, val]) => val !== undefined && !SENSITIVE_ENV_KEYS.has(key),
+        ),
+      );
+
       const { stdout, stderr } = await execAsync(cmd, {
         timeout: TIMEOUT_MS,
-        env: {
-          ...process.env,
-          // Strip sensitive vars from subprocess
-          ANTHROPIC_API_KEY: undefined,
-          ARMALO_API_KEY: undefined,
-          OPENAI_API_KEY: undefined,
-        },
+        env: safeEnv,
       });
 
       return {

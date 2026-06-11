@@ -14,7 +14,7 @@ Great contributions include:
 ## Getting Started
 
 ```bash
-git clone https://github.com/armalo-ai/armalo-agent.git
+git clone https://github.com/fongryan/armalo-agent.git
 cd armalo-agent
 npm install
 cp .env.example .env

@@ -5,6 +5,9 @@ const MAX_CONTENT_LENGTH = 20_000;
 /**
  * URL fetcher — retrieves and cleans web page content for the agent to read.
  * Strips HTML tags, scripts, styles and returns readable plain text.
+ *
+ * SSRF protection blocks: loopback, RFC-1918 private ranges, link-local,
+ * cloud metadata endpoints (169.254.x.x), and all non-http/https protocols.
  */
 export const fetchUrlTool: Tool = {
   name: 'fetch_url',
@@ -73,17 +76,43 @@ function validateUrl(url: string): void {
   if (!['http:', 'https:'].includes(parsed.protocol)) {
     throw new Error(`Only http/https URLs are allowed, got: ${parsed.protocol}`);
   }
-  // Block private IP ranges
-  const hostname = parsed.hostname;
-  if (
-    hostname === 'localhost' ||
-    hostname.startsWith('127.') ||
-    hostname.startsWith('192.168.') ||
-    hostname.startsWith('10.') ||
-    hostname === '::1'
-  ) {
-    throw new Error(`Fetching private/local addresses is not allowed`);
+  if (isPrivateHostname(parsed.hostname)) {
+    throw new Error(`Fetching private/local addresses is not allowed: ${parsed.hostname}`);
   }
+}
+
+function isPrivateHostname(hostname: string): boolean {
+  // Named private hosts
+  if (hostname === 'localhost') return true;
+  if (hostname.endsWith('.local') || hostname.endsWith('.internal')) return true;
+
+  // IPv6 loopback (::1) and link-local (fe80::)
+  const lc = hostname.toLowerCase();
+  if (lc === '::1' || lc === '0:0:0:0:0:0:0:1') return true;
+  if (lc.startsWith('fe80:')) return true;
+
+  // IPv4-mapped IPv6 (::ffff:127.0.0.1, etc.)
+  const ipv4Mapped = lc.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (ipv4Mapped?.[1]) return isPrivateIPv4(ipv4Mapped[1]);
+
+  // Bare IPv4
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) return isPrivateIPv4(hostname);
+
+  return false;
+}
+
+function isPrivateIPv4(ip: string): boolean {
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) return false;
+  const [a, b] = parts as [number, number, number, number];
+  return (
+    a === 0 ||                            // 0.0.0.0/8 — unspecified
+    a === 10 ||                           // 10.0.0.0/8 — Class A private
+    a === 127 ||                          // 127.0.0.0/8 — loopback
+    (a === 169 && b === 254) ||           // 169.254.0.0/16 — link-local / AWS IMDS
+    (a === 172 && b >= 16 && b <= 31) ||  // 172.16.0.0/12 — Class B private (VPC)
+    (a === 192 && b === 168)              // 192.168.0.0/16 — Class C private
+  );
 }
 
 function stripHtml(html: string): string {
