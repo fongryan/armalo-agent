@@ -11,7 +11,7 @@ An AI agent built on the **[Armalo SDK](https://armalo.ai)** — the trust layer
 
 This repo includes:
 
-- **`TrustNativeAgent`** — an Anthropic-powered agent with pact enforcement, jury-gated outputs, and real-time trust scoring
+- **`TrustNativeAgent`** — a provider-pluggable agent with pact enforcement, jury-gated outputs, and real-time trust scoring
 - **`AutonomousEarningAgent`** — scans the Armalo marketplace, accepts deals, executes work, jury-gates deliveries, releases escrow, and triggers RSI improvement loops
 - **`TrustFlywheelOrchestrator`** — runs structured eval campaigns across 5 trust dimensions (accuracy, safety, reliability, latency, cost efficiency) and drives toward a target score
 - **`AutonomousResearcher`** — multi-session research queue backed by Cortex memory; picks up where it left off across restarts
@@ -43,7 +43,8 @@ npm install
 
 # 2. Configure
 cp .env.example .env
-# Fill in ANTHROPIC_API_KEY and ARMALO_API_KEY
+# Fill in ARMALO_API_KEY for trust telemetry.
+# Add an LLM provider key only for examples that make live local model calls.
 
 # 3. Register your agent (creates it on Armalo, saves agent ID)
 npm run register
@@ -58,18 +59,21 @@ Get an Armalo API key at [armalo.ai/dashboard/api-keys](https://armalo.ai/dashbo
 
 ## LLM Configuration
 
-By default, this agent uses **Claude Opus 4.5**. You can configure any LLM via environment variables or constructor options:
+`ANTHROPIC_API_KEY` is **not required** to use Armalo trust telemetry, register an agent, run MCP Shield, or wrap another provider. It is only needed when you want `TrustNativeAgent` to create its built-in Claude client for local inference.
+
+By default, `TrustNativeAgent` passes **Claude Opus 4.5** as the model name to the configured inference client. You can configure the model via environment variables or constructor options:
 
 ```bash
 # Use a different model
 export AGENT_MODEL="claude-sonnet-4-6"
 export AGENT_MAX_TOKENS="4096"
 
-# Or use OpenAI, Gemini, Bedrock, etc. via @anthropic-ai/sdk compatibility wrappers
+# Or inject an Anthropic-compatible client for OpenAI, Gemini, Bedrock,
+# a hosted gateway, or your own provider router.
 ```
 
 ```typescript
-// Constructor-level override
+// Constructor-level override using the built-in Anthropic client
 const agent = new TrustNativeAgent({
   model: 'claude-opus-4-8',          // Switch models
   maxTokens: 16384,                   // Increase context
@@ -78,10 +82,20 @@ const agent = new TrustNativeAgent({
 });
 ```
 
-**Using other providers?** The SDK works with any Anthropic-compatible API:
+```typescript
+// Provider injection: no ANTHROPIC_API_KEY required
+const agent = new TrustNativeAgent({
+  armaloApiKey: process.env.ARMALO_API_KEY,
+  agentId: process.env.ARMALO_AGENT_ID,
+  model: 'my-provider-model',
+  inferenceClient: myAnthropicCompatibleClient,
+});
+```
+
+**Using other providers?** Armalo's integrations work with multiple client shapes:
 - **OpenAI** — Use `wrapOpenAI()` from `@armalo/integrations`
 - **Gemini** — Use `wrapGenAI()` from `@armalo/integrations`
-- **Bedrock** — Configure `@anthropic-ai/sdk` with bedrock credentials
+- **Bedrock / hosted gateways / local routers** — Pass an Anthropic-compatible `inferenceClient`
 - **LangChain / LangGraph** — Wrap your model with Armalo plugins
 
 See [examples/openai-agent.ts](examples/openai-agent.ts) and [examples/langgraph-agent.ts](examples/langgraph-agent.ts) for full implementations.
@@ -115,7 +129,7 @@ The CLI lets you prototype without managing API keys, run evaluations in batch, 
 
 ## The Core SDK Integration (2 Lines)
 
-Adding Armalo trust telemetry to any Anthropic agent takes exactly 2 lines:
+Adding Armalo trust telemetry to an Anthropic agent takes exactly 2 lines:
 
 ```typescript
 import Anthropic from '@anthropic-ai/sdk';
@@ -203,10 +217,10 @@ import { AutonomousEarningAgent } from './src/earning-agent';
 const agent = new AutonomousEarningAgent({
   apiKey: process.env.ARMALO_API_KEY!,
   agentId: process.env.ARMALO_AGENT_ID!,
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY!,
   capabilities: ['research', 'writing', 'analysis'],
   minDealValueUsdc: 10,   // skip low-value work
   maxRevisions: 2,        // retry on jury rejection before abandoning
+  // Optional for live local delivery: anthropicApiKey or inferenceClient
 });
 
 // Register your skills in the marketplace
@@ -218,12 +232,11 @@ await agent.registerSkills([
 // Run the full earning loop
 const result = await agent.runLoop({
   maxDeals: 10,
-  maxDurationMinutes: 60,
-  triggerRsiAfterDeal: true,   // improve after every delivery
-  onDealComplete: (r) => console.log(`Earned $${r.earnedUsdc} USDC on: ${r.dealTitle}`),
+  timeboxMs: 60 * 60 * 1000,
+  onDealDelivered: (r) => console.log(`Earned $${r.earnedUsdc ?? 0} USDC on deal ${r.dealId}`),
 });
 
-console.log(`Completed: ${result.totalDeals} deals | Earned: $${result.totalEarnedUsdc} USDC`);
+console.log(`Completed: ${result.dealsProcessed} deals | Earned: $${result.totalEarned} USDC`);
 
 // Lifetime earnings report
 const report = await agent.getLifetimeEarnings();
@@ -294,7 +307,7 @@ import { AutonomousResearcher } from './src/research';
 const researcher = new AutonomousResearcher({
   apiKey: process.env.ARMALO_API_KEY!,
   agentId: process.env.ARMALO_AGENT_ID!,
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY!,
+  // Optional for live local research: set ANTHROPIC_API_KEY or pass inferenceClient.
 });
 
 // Add questions — they survive process restarts
@@ -598,7 +611,7 @@ The shield applies trust-score gating, rate limiting, injection filtering, and a
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Anthropic API key |
+| `ANTHROPIC_API_KEY` | No | Optional key for `TrustNativeAgent`'s built-in Claude client |
 | `ARMALO_API_KEY` | Recommended | Armalo key for trust scoring |
 | `ARMALO_AGENT_ID` | Recommended | Your agent's Armalo ID |
 | `AGENT_MODEL` | No | Model to use (default: `claude-opus-4-5`) |
@@ -613,7 +626,7 @@ The shield applies trust-score gating, rate limiting, injection filtering, and a
 
 ```
 Your Agent (this repo)
-    ↓ wrapAnthropic() — 2 lines
+    ↓ provider wrapper or injected inference client
 Armalo Trust Oracle    ← Other platforms verify your agent here
     ↓
 Trust Score + Tier     ← Unlocks higher-value work in the marketplace

@@ -1,7 +1,7 @@
 /**
  * TrustNativeAgent — the core of armalo-agent.
  *
- * Wraps Claude (or any Anthropic-compatible model) with:
+ * Wraps an injected Anthropic-compatible client or the built-in Claude client with:
  * - Behavioral pacts via @armalo/core
  * - Trust telemetry via @armalo/integrations
  * - Tool-use loop with 5 built-in tools
@@ -17,7 +17,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { wrapAnthropic } from '@armalo/integrations';
 import type { PactDefinition } from '@armalo/core';
 import { validateLocally } from '@armalo/core/validator';
-import type { AgentConfig, Tool, RunResult, AgentSession } from './types.js';
+import type { AgentConfig, Tool, RunResult, AgentSession, InferenceClient } from './types.js';
 import { SAFETY_DEFAULTS } from './pacts/index.js';
 import { ALL_TOOLS, toAnthropicTools, findTool } from './tools/registry.js';
 import { AgentTrustClient } from './trust/client.js';
@@ -46,8 +46,11 @@ const DEFAULT_MAX_TOKENS = 8192;
 const MAX_ITERATIONS = 20;
 
 export class TrustNativeAgent {
-  private config: Required<Omit<AgentConfig, 'systemPrompt'>> & { systemPrompt: string };
-  private anthropic: ReturnType<typeof wrapAnthropic>;
+  private config: Required<Omit<AgentConfig, 'systemPrompt' | 'inferenceClient'>> & {
+    systemPrompt: string;
+    inferenceClient?: InferenceClient;
+  };
+  private inferenceClient?: InferenceClient;
   private trustClient: AgentTrustClient | null = null;
   private pacts: PactDefinition[];
   private tools: Tool[];
@@ -55,32 +58,21 @@ export class TrustNativeAgent {
   constructor(config: AgentConfig = {}) {
     const armaloApiKey = config.armaloApiKey ?? process.env.ARMALO_API_KEY ?? '';
     const agentId = config.agentId ?? process.env.ARMALO_AGENT_ID ?? 'armalo-agent-local';
-    const anthropicApiKey = config.anthropicApiKey ?? process.env.ANTHROPIC_API_KEY;
-
-    if (!anthropicApiKey) {
-      throw new Error('ANTHROPIC_API_KEY is required. Set it in your .env file or pass it to TrustNativeAgent({ anthropicApiKey }).');
-    }
+    const anthropicApiKey = config.anthropicApiKey ?? process.env.ANTHROPIC_API_KEY ?? '';
 
     this.config = {
       armaloApiKey,
       agentId,
       anthropicApiKey,
+      inferenceClient: config.inferenceClient,
       model: config.model ?? process.env.AGENT_MODEL ?? DEFAULT_MODEL,
-      maxTokens: config.maxTokens ?? parseInt(process.env.AGENT_MAX_TOKENS ?? '8192') ?? DEFAULT_MAX_TOKENS,
+      maxTokens: config.maxTokens ?? readPositiveInt(process.env.AGENT_MAX_TOKENS, DEFAULT_MAX_TOKENS),
       pacts: config.pacts ?? [SAFETY_DEFAULTS],
       showTrustScore: config.showTrustScore ?? process.env.SHOW_TRUST_SCORE !== 'false',
       systemPrompt: config.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
     };
 
-    // Wrap the Anthropic client with Armalo trust telemetry (2 lines).
-    // Cast to satisfy the wrapper's AnthropicLike type — the Anthropic SDK's streaming
-    // overloads have a stricter signature than the wrapper expects.
-    const rawClient = new Anthropic({ apiKey: anthropicApiKey });
-    this.anthropic = wrapAnthropic(rawClient as unknown as Parameters<typeof wrapAnthropic>[0], {
-      apiKey: armaloApiKey,
-      agentId,
-      baseUrl: process.env.ARMALO_BASE_URL,
-    });
+    this.inferenceClient = this.buildInferenceClient(config.inferenceClient, anthropicApiKey, armaloApiKey, agentId);
 
     if (armaloApiKey && agentId !== 'armalo-agent-local') {
       this.trustClient = new AgentTrustClient(
@@ -116,12 +108,13 @@ export class TrustNativeAgent {
     while (iteration < MAX_ITERATIONS) {
       iteration++;
 
-      const response = await this.anthropic.messages.create({
+      const inferenceClient = this.requireInferenceClient();
+      const response = await inferenceClient.messages.create({
         model: this.config.model,
         max_tokens: this.config.maxTokens,
         system: this.config.systemPrompt,
         tools: toAnthropicTools(tools),
-        messages: messages as Parameters<typeof this.anthropic.messages.create>[0]['messages'],
+        messages,
       });
 
       session.totalInputTokens += response.usage.input_tokens;
@@ -194,6 +187,40 @@ export class TrustNativeAgent {
     return { output: finalOutput, session: finalSession, trustScore };
   }
 
+  private buildInferenceClient(
+    configuredClient: InferenceClient | undefined,
+    anthropicApiKey: string,
+    armaloApiKey: string,
+    agentId: string,
+  ): InferenceClient | undefined {
+    if (configuredClient) {
+      return wrapAnthropic(configuredClient as unknown as Parameters<typeof wrapAnthropic>[0], {
+        apiKey: armaloApiKey,
+        agentId,
+        baseUrl: process.env.ARMALO_BASE_URL,
+      }) as unknown as InferenceClient;
+    }
+
+    if (!anthropicApiKey) return undefined;
+
+    // Wrap the Anthropic client with Armalo trust telemetry (2 lines).
+    // Cast to satisfy the wrapper's AnthropicLike type — the Anthropic SDK's streaming
+    // overloads have a stricter signature than the wrapper expects.
+    const rawClient = new Anthropic({ apiKey: anthropicApiKey });
+    return wrapAnthropic(rawClient as unknown as Parameters<typeof wrapAnthropic>[0], {
+      apiKey: armaloApiKey,
+      agentId,
+      baseUrl: process.env.ARMALO_BASE_URL,
+    }) as unknown as InferenceClient;
+  }
+
+  private requireInferenceClient(): InferenceClient {
+    if (this.inferenceClient) return this.inferenceClient;
+    throw new Error(
+      'No local inference provider is configured. Set ANTHROPIC_API_KEY for the built-in Claude client, pass TrustNativeAgent({ inferenceClient }) for another provider, or use the Armalo CLI hosted inference flow.',
+    );
+  }
+
   private async validateAgainstPacts(
     input: string,
     output: string,
@@ -237,6 +264,12 @@ export class TrustNativeAgent {
     this.pacts = pacts;
     return this;
   }
+}
+
+function readPositiveInt(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 async function executeTool(

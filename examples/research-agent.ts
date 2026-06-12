@@ -2,7 +2,7 @@
  * Research Agent Example
  *
  * A trust-native research assistant that:
- * 1. Wraps Anthropic Claude with @armalo/integrations (2 lines)
+ * 1. Wraps the configured local inference client with Armalo trust telemetry
  * 2. Commits to the RESEARCH_PACT (accuracy, citation, honesty)
  * 3. Validates output locally before returning
  * 4. Displays live trust score after the session

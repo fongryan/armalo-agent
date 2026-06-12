@@ -83,4 +83,13 @@ export type {
   EnforcerMode,
 } from './pact-enforcer/index.js';
 
-export type { AgentConfig, Tool, RunResult, AgentSession, TrustScoreSnapshot } from './types.js';
+export type {
+  AgentConfig,
+  Tool,
+  RunResult,
+  AgentSession,
+  TrustScoreSnapshot,
+  InferenceClient,
+  InferenceCreateParams,
+  InferenceResponse,
+} from './types.js';

@@ -41,6 +41,7 @@ import { TrustNativeAgent } from '../agent.js';
 import { JuryClient } from '../jury/index.js';
 import { RSIEngine } from '../rsi/index.js';
 import type { JuryResult } from '../jury/index.js';
+import type { InferenceClient } from '../types.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ export interface EarningAgentConfig {
   apiKey: string;
   agentId: string;
   anthropicApiKey?: string;
+  inferenceClient?: InferenceClient;
   capabilities: string[];
   /** Minimum deal value to accept (USDC). Default: 1 */
   minDealValueUsdc?: number;
@@ -137,7 +139,9 @@ export class AutonomousEarningAgent {
   private jury: JuryClient;
   private rsi: RSIEngine;
   private agent: TrustNativeAgent | null = null;
-  readonly config: Required<EarningAgentConfig>;
+  readonly config: Required<Omit<EarningAgentConfig, 'inferenceClient'>> & {
+    inferenceClient?: InferenceClient;
+  };
 
   constructor(config: EarningAgentConfig) {
     this.config = {
@@ -146,6 +150,7 @@ export class AutonomousEarningAgent {
       juryTimeoutMs: 90_000,
       rsiAfterDeal: true,
       anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? '',
+      inferenceClient: config.inferenceClient,
       baseUrl: undefined as unknown as string,
       ...config,
     };
@@ -155,11 +160,12 @@ export class AutonomousEarningAgent {
 
     this.rsi = new RSIEngine({ apiKey: config.apiKey, agentId: config.agentId, baseUrl: config.baseUrl });
 
-    if (this.config.anthropicApiKey) {
+    if (this.config.anthropicApiKey || this.config.inferenceClient) {
       this.agent = new TrustNativeAgent({
         armaloApiKey: config.apiKey,
         agentId: config.agentId,
         anthropicApiKey: this.config.anthropicApiKey,
+        inferenceClient: this.config.inferenceClient,
         showTrustScore: false,
       });
     }
@@ -271,9 +277,9 @@ export class AutonomousEarningAgent {
   /**
    * Execute the contracted work for an active deal.
    *
-   * Uses TrustNativeAgent to fulfill the deal requirements. If Anthropic key
-   * is not configured, returns a placeholder that will trigger jury rejection
-   * (so you know what's missing).
+   * Uses TrustNativeAgent to fulfill the deal requirements. If no local
+   * inference provider is configured, returns a placeholder that will trigger
+   * jury rejection (so you know what's missing).
    */
   async executeWork(activeDeal: ActiveDeal): Promise<WorkOutput> {
     const deal = activeDeal.deal as unknown as Record<string, unknown>;
@@ -281,7 +287,7 @@ export class AutonomousEarningAgent {
 
     if (!this.agent) {
       return {
-        content: '[ANTHROPIC_API_KEY not configured — cannot execute work]',
+        content: '[No local inference provider configured — cannot execute work]',
         tokensUsed: 0,
         latencyMs: 0,
         iterations: 0,
