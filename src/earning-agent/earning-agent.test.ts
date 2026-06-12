@@ -80,6 +80,7 @@ function mockDealObj() {
 
 // ── Import after mocks are set up ─────────────────────────────────────────────
 import { AutonomousEarningAgent } from './index.js';
+import { TrustNativeAgent } from '../agent.js';
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -207,12 +208,44 @@ describe('AutonomousEarningAgent', () => {
       expect(result.revisionsUsed).toBeGreaterThan(0);
     });
 
-    it('delivers without jury when jury API is unavailable', async () => {
+    it('treats transient jury unavailability as a rejection and retries', async () => {
       mockJuryVerify.mockRejectedValueOnce(new Error('jury unavailable'));
       const active = await agent.acceptDeal(mockDealObj() as never);
       const output = { content: 'output', tokensUsed: 100, latencyMs: 500, iterations: 1 };
       const result = await agent.deliverWithJuryGate(active, output);
       expect(result.verdict).toBe('delivered');
+      expect(result.revisionsUsed).toBe(1);
+    });
+  });
+
+  describe('executeWork', () => {
+    it('returns an explicit unavailable-provider result without local inference', async () => {
+      const noProviderAgent = new AutonomousEarningAgent({
+        apiKey: 'key',
+        agentId: 'agent',
+        capabilities: [],
+      });
+      const active = await noProviderAgent.acceptDeal(mockDealObj() as never);
+
+      const output = await noProviderAgent.executeWork(active);
+
+      expect(output.content).toContain('No local inference provider configured');
+      expect(output.tokensUsed).toBe(0);
+    });
+
+    it('passes an injected inference client to TrustNativeAgent', () => {
+      const inferenceClient = { messages: { create: vi.fn() } };
+
+      new AutonomousEarningAgent({
+        apiKey: 'key',
+        agentId: 'agent',
+        capabilities: [],
+        inferenceClient,
+      });
+
+      expect(TrustNativeAgent).toHaveBeenCalledWith(expect.objectContaining({
+        inferenceClient,
+      }));
     });
   });
 

@@ -1,13 +1,61 @@
 import type { PactDefinition } from '@armalo/core';
 
+export type InferenceContentBlock = {
+  type: string;
+  [key: string]: unknown;
+};
+
+export interface InferenceMessageParam {
+  role: 'user' | 'assistant';
+  content: string | InferenceContentBlock[];
+}
+
+export interface InferenceToolDefinition {
+  name: string;
+  description?: string;
+  input_schema: {
+    type: 'object';
+    properties?: Record<string, unknown>;
+    required?: string[];
+  };
+}
+
+export interface InferenceCreateParams {
+  model: string;
+  messages: InferenceMessageParam[];
+  max_tokens?: number;
+  system?: string;
+  tools?: InferenceToolDefinition[];
+  [key: string]: unknown;
+}
+
+export interface InferenceResponse {
+  content: InferenceContentBlock[];
+  stop_reason: string | null;
+  usage: {
+    input_tokens: number;
+    output_tokens: number;
+  };
+  [key: string]: unknown;
+}
+
+export interface InferenceClient {
+  messages: {
+    create(params: InferenceCreateParams): Promise<InferenceResponse>;
+  };
+  [key: string]: unknown;
+}
+
 export interface AgentConfig {
   /** Armalo API key — defaults to ARMALO_API_KEY env var */
   armaloApiKey?: string;
   /** Your agent's Armalo ID — defaults to ARMALO_AGENT_ID env var */
   agentId?: string;
-  /** Anthropic API key — defaults to ANTHROPIC_API_KEY env var */
+  /** Anthropic API key for the built-in Claude client. Optional if inferenceClient is provided. */
   anthropicApiKey?: string;
-  /** Claude model (default: claude-opus-4-5) */
+  /** Anthropic-compatible inference client. Use this for OpenAI/Gemini/local/provider-router wrappers. */
+  inferenceClient?: InferenceClient;
+  /** Model name passed to the configured inference client (default: claude-opus-4-5) */
   model?: string;
   /** Max tokens per response (default: 8192) */
   maxTokens?: number;

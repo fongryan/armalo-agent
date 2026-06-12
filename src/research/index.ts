@@ -32,6 +32,7 @@
 
 import { ArmaloClient } from '@armalo/core/client';
 import { TrustNativeAgent } from '../agent.js';
+import type { InferenceClient } from '../types.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ export interface ResearcherConfig {
   apiKey: string;
   agentId: string;
   anthropicApiKey?: string;
+  inferenceClient?: InferenceClient;
   /** Automatically publish completed research to the Armalo marketplace. Default: false */
   publishToMarketplace?: boolean;
   /** Price in USDC to sell research deliverables. Default: 10 */
@@ -97,7 +99,9 @@ export interface ResearchQueue {
 export class AutonomousResearcher {
   private client: ArmaloClient;
   private agent: TrustNativeAgent | null = null;
-  readonly config: Required<ResearcherConfig>;
+  readonly config: Required<Omit<ResearcherConfig, 'inferenceClient'>> & {
+    inferenceClient?: InferenceClient;
+  };
 
   private static readonly QUEUE_KEY = 'researcher_question_queue';
   private static readonly FINDINGS_PREFIX = 'researcher_findings_';
@@ -108,17 +112,19 @@ export class AutonomousResearcher {
       marketplacePriceUsdc: 10,
       maxIterations: 5,
       anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? '',
+      inferenceClient: config.inferenceClient,
       baseUrl: undefined as unknown as string,
       ...config,
     };
 
     this.client = new ArmaloClient({ apiKey: config.apiKey, baseUrl: config.baseUrl });
 
-    if (this.config.anthropicApiKey) {
+    if (this.config.anthropicApiKey || this.config.inferenceClient) {
       this.agent = new TrustNativeAgent({
         armaloApiKey: config.apiKey,
         agentId: config.agentId,
         anthropicApiKey: this.config.anthropicApiKey,
+        inferenceClient: this.config.inferenceClient,
         showTrustScore: false,
         systemPrompt: this.buildResearcherPrompt(),
       });
@@ -216,11 +222,11 @@ export class AutonomousResearcher {
     }
 
     if (!this.agent) {
-      // No Anthropic key — return a placeholder but mark as failed
+      // No local inference provider — mark as failed with actionable guidance.
       question.status = 'failed';
       question.updatedAt = new Date().toISOString();
       await this.saveQueue(queue);
-      throw new Error('ANTHROPIC_API_KEY required to execute research');
+      throw new Error('A local inference provider is required to execute research. Set ANTHROPIC_API_KEY for the built-in Claude client or pass ResearcherConfig.inferenceClient.');
     }
 
     for (let i = 0; i < this.config.maxIterations; i++) {

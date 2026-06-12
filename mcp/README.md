@@ -23,7 +23,6 @@ Add to your `claude_desktop_config.json`:
       "command": "npx",
       "args": ["tsx", "/path/to/armalo-agent/mcp/server.ts"],
       "env": {
-        "ANTHROPIC_API_KEY": "sk-ant-...",
         "ARMALO_API_KEY": "armalo_sk_...",
         "ARMALO_AGENT_ID": "your-agent-id"
       }
