@@ -1,7 +1,7 @@
 {
   "name": "armalo-agent",
   "version": "0.1.0",
-  "description": "A trust-native AI agent built on the Armalo SDK — behavioral pacts, real-time trust scoring, MCP shield, and multi-framework integrations.",
+  "description": "A trust-native AI agent reference built on the Armalo SDK — receipts, provider routing, coding harnesses, gauntlets, pacts, MCP shield, and multi-framework integrations.",
   "keywords": [
     "ai-agent",
     "trust",
@@ -11,7 +11,11 @@
     "anthropic",
     "openai",
     "langgraph",
-    "trust-score"
+    "trust-score",
+    "agent-receipts",
+    "coding-agent",
+    "provider-router",
+    "eval-gauntlet"
   ],
   "author": "Armalo AI",
   "license": "MIT",
@@ -50,6 +54,7 @@
     "example:rsi": "tsx examples/rsi-loop.ts",
     "example:goals": "tsx examples/goal-driven-agent.ts",
     "example:sie": "tsx examples/sie-integration.ts",
+    "example:showcase": "tsx examples/showcase.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

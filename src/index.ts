@@ -93,3 +93,56 @@ export type {
   InferenceCreateParams,
   InferenceResponse,
 } from './types.js';
+
+// Run receipts — shareable proof artifacts for agent work
+export {
+  createRunReceipt,
+  renderReceiptMarkdown,
+  renderReceiptHtml,
+  verifyReceipt,
+} from './receipts/index.js';
+export type {
+  RunReceipt,
+  RunReceiptInput,
+  ReceiptEvidence,
+  ReceiptToolCall,
+  ReceiptVerification,
+} from './receipts/index.js';
+
+// Provider router — provider-agnostic failover for local inference clients
+export {
+  ProviderChainError,
+  createFallbackInferenceClient,
+  createStaticInferenceClient,
+  listProviderProfiles,
+} from './providers/index.js';
+export type {
+  ProviderAttempt,
+  ProviderProfile,
+  ProviderRoute,
+  RoutedInferenceResponse,
+} from './providers/index.js';
+
+// Coding harness — spec → plan → patch → verify → receipt
+export { CodingHarness } from './coding-harness/index.js';
+export type {
+  CodingHarnessConfig,
+  CodingHarnessRequest,
+  CodingHarnessResult,
+  CodingPatch,
+  CodingPlan,
+  VerificationRun,
+} from './coding-harness/index.js';
+
+// Agent gauntlet — public eval scorecards
+export { AgentGauntlet, DEFAULT_GAUNTLET_TASKS } from './gauntlet/index.js';
+export type {
+  AgentGauntletConfig,
+  GauntletResult,
+  GauntletScorecard,
+  GauntletTask,
+} from './gauntlet/index.js';
+
+// Skill packs — reusable public agent capability bundles
+export { getSkillPack, listSkillPacks } from './packs/index.js';
+export type { SkillPack } from './packs/index.js';
