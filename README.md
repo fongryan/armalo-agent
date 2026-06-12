@@ -12,6 +12,11 @@ An AI agent built on the **[Armalo SDK](https://armalo.ai)** — the trust layer
 This repo includes:
 
 - **`TrustNativeAgent`** — a provider-pluggable agent with pact enforcement, jury-gated outputs, and real-time trust scoring
+- **`RunReceipt`** — shareable JSON/Markdown/HTML proof for what an agent did, which tools ran, which provider answered, and what evidence passed
+- **`CodingHarness`** — spec → plan → patch → verify loop for showcasing agentic coding work with test-backed receipts
+- **`AgentGauntlet`** — public benchmark scorecards for coding, research, safety, tool honesty, and provider-failover behavior
+- **`ProviderRouter`** — provider-agnostic local inference failover with latency/error attribution
+- **`SkillPacks`** — curated capability bundles for coding, security, research, marketplace, and MCP Shield agents
 - **`AutonomousEarningAgent`** — scans the Armalo marketplace, accepts deals, executes work, jury-gates deliveries, releases escrow, and triggers RSI improvement loops
 - **`TrustFlywheelOrchestrator`** — runs structured eval campaigns across 5 trust dimensions (accuracy, safety, reliability, latency, cost efficiency) and drives toward a target score
 - **`AutonomousResearcher`** — multi-session research queue backed by Cortex memory; picks up where it left off across restarts
@@ -54,6 +59,18 @@ npm run dev
 ```
 
 Get an Armalo API key at [armalo.ai/dashboard/api-keys](https://armalo.ai/dashboard/api-keys).
+
+---
+
+## Public Showcase
+
+Run the free local showcase without any paid model keys:
+
+```bash
+npm run example:showcase
+```
+
+It demonstrates provider failover, a coding harness run, receipt rendering, gauntlet scoring, and the curated skill-pack catalog. See [docs/showcase/agentic-harness.md](docs/showcase/agentic-harness.md) for the architecture.
 
 ---
 
@@ -593,6 +610,7 @@ npm run example:openai       # wrapOpenAI() in 2 lines
 npm run example:langgraph    # createArmaloNode() for LangGraph
 npm run example:swarm "topic"  # 3-agent: researcher → checker → synthesizer
 npm run example:evals        # 6 accuracy/safety/reliability eval cases
+npm run example:showcase     # provider router + coding harness + receipts + gauntlet + packs
 ```
 
 ---
