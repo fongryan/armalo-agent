@@ -4,6 +4,9 @@
   "description": "A trust-native AI agent reference built on the Armalo SDK — receipts, provider routing, coding harnesses, gauntlets, pacts, MCP shield, and multi-framework integrations.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "armalo-mcp": "./dist/mcp-server.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -55,7 +58,8 @@
     "score": "tsx scripts/score.ts",
     "register": "tsx scripts/register.ts",
     "eval": "tsx scripts/eval.ts",
-    "mcp": "tsx mcp/server.ts",
+    "mcp": "node dist/mcp-server.js",
+    "mcp:dev": "tsx src/mcp-server.ts",
     "example:research": "tsx examples/research-agent.ts",
     "example:openai": "tsx examples/openai-agent.ts",
     "example:langgraph": "tsx examples/langgraph-agent.ts",

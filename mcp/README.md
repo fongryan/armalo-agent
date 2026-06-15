@@ -1,8 +1,8 @@
-# MCP Server Setup
+# Armalo Agent MCP Server
 
-The `armalo-agent` MCP server exposes all agent tools to any MCP-compatible client, protected by Armalo's trust shield.
+The `armalo-agent` MCP server exposes trust-native agent capabilities to any MCP-compatible client (Claude Desktop, Claude Code, VS Code, Cursor), protected by Armalo's trust shield.
 
-## Tools Exposed
+## Tools
 
 | Tool | Description | Trust Required |
 |------|-------------|----------------|
@@ -12,16 +12,53 @@ The `armalo-agent` MCP server exposes all agent tools to any MCP-compatible clie
 | `run_code` | Execute JavaScript/TypeScript snippets | 700+ |
 | `memory` | Store and retrieve session facts | 0+ |
 
-## Add to Claude Desktop
+## Prompts (Invokable Workflows)
 
-Add to your `claude_desktop_config.json`:
+| Prompt | Description |
+|--------|-------------|
+| `setup-armalo-trust` | Step-by-step agent registration with the Armalo Trust Oracle |
+| `analyze-pact-compliance` | Analyze whether agent output meets a behavioral pact |
+| `run-trust-flywheel` | Design a trust improvement campaign toward a target score |
+| `research-with-trust` | Research with mandatory citations and pact enforcement |
+
+## Resources
+
+| URI | Description |
+|-----|-------------|
+| `armalo://docs/quickstart` | Get started with Armalo in 5 minutes |
+| `armalo://pact-templates` | Pre-built behavioral pact templates (JSON) |
+| `armalo://trust-dimensions` | All 12 trust score dimensions and how to optimize them |
+| `armalo://tools/catalog` | This server's tool list with parameters |
+
+## Installation
+
+### Option 1: npx (no install required)
+
+```bash
+npx armalo-agent armalo-mcp
+```
+
+### Option 2: Global install
+
+```bash
+npm install -g armalo-agent
+armalo-mcp
+```
+
+### Option 3: Local dev (TypeScript source)
+
+```bash
+npm run mcp:dev
+```
+
+## Add to Claude Desktop
 
 ```json
 {
   "mcpServers": {
     "armalo-agent": {
       "command": "npx",
-      "args": ["tsx", "/path/to/armalo-agent/mcp/server.ts"],
+      "args": ["-y", "armalo-agent", "armalo-mcp"],
       "env": {
         "ARMALO_API_KEY": "armalo_sk_...",
         "ARMALO_AGENT_ID": "your-agent-id"
@@ -31,15 +68,21 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-## Run Standalone
+## Add to Claude Code
 
 ```bash
-# Start the MCP server
-npm run mcp
-
-# Or with custom trust threshold
-MCP_MIN_TRUST_SCORE=600 npm run mcp
+claude mcp add armalo-agent -- npx -y armalo-agent armalo-mcp
 ```
+
+## Configuration
+
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| `ARMALO_API_KEY` | — | Enables trust-score gating + audit trail |
+| `ARMALO_AGENT_ID` | — | Agent to gate against |
+| `MCP_MIN_TRUST_SCORE` | `0` | Minimum trust score (0–1000) to allow tool calls |
+| `MCP_RATE_LIMIT` | `60` | Max tool calls per minute per caller |
+| `BRAVE_SEARCH_API_KEY` | — | Enables Brave Search (falls back to DuckDuckGo) |
 
 ## How the Shield Works
 
@@ -58,12 +101,3 @@ Audit Log           ← Forward to Armalo for trust scoring
   ↓
 MCP Client Response
 ```
-
-## Shield Configuration
-
-| Env Var | Default | Description |
-|---------|---------|-------------|
-| `MCP_MIN_TRUST_SCORE` | `0` | Minimum trust score (0–1000) |
-| `MCP_RATE_LIMIT` | `60` | Max calls per minute per caller |
-| `ARMALO_API_KEY` | — | Enables trust-score gating + audit |
-| `ARMALO_AGENT_ID` | — | Agent to gate against |
