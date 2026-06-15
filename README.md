@@ -1,6 +1,6 @@
 # Armalo Agent
 
-[![npm version](https://img.shields.io/npm/v/@armalo/core)](https://www.npmjs.com/package/@armalo/core)
+[![npm package name](https://img.shields.io/badge/package-armalo--agent-0f172a)](./package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Built with Armalo SDK](https://img.shields.io/badge/built%20with-Armalo%20SDK-6366f1)](https://armalo.ai)
 [![Visit armalo.ai](https://img.shields.io/badge/www-armalo.ai-000000)](https://armalo.ai)
@@ -71,6 +71,17 @@ npm run example:showcase
 ```
 
 It demonstrates provider failover, a coding harness run, receipt rendering, gauntlet scoring, and the curated skill-pack catalog. See [docs/showcase/agentic-harness.md](docs/showcase/agentic-harness.md) for the architecture.
+
+Current clean-room proof from a fresh temp copy of this repo:
+
+```bash
+npm install
+npm run typecheck
+npm test -- src/showcase/showcase.test.ts
+ANTHROPIC_API_KEY='' OPENAI_API_KEY='' GEMINI_API_KEY='' OPENROUTER_API_KEY='' npm run example:showcase
+```
+
+That path proves repo install, typecheck, the no-key showcase smoke test, and the live showcase command without requiring a paid provider key.
 
 ---
 
