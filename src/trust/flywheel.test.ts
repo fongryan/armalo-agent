@@ -27,11 +27,13 @@ const mockJuryVerify = vi.hoisted(() => vi.fn().mockResolvedValue({
 }));
 
 vi.mock('@armalo/core/client', () => ({
-  ArmaloClient: vi.fn().mockImplementation(() => ({
-    getScore: mockGetScore,
-    evals: { create: mockEvalsCreate },
-    rsi: { listFlywheels: vi.fn().mockResolvedValue({ flywheels: [] }) },
-  })),
+  ArmaloClient: vi.fn(function MockArmaloClient() {
+    return {
+      getScore: mockGetScore,
+      evals: { create: mockEvalsCreate },
+      rsi: { listFlywheels: vi.fn().mockResolvedValue({ flywheels: [] }) },
+    };
+  }),
 }));
 
 vi.mock('@armalo/core', () => ({
@@ -39,11 +41,15 @@ vi.mock('@armalo/core', () => ({
 }));
 
 vi.mock('../jury/index.js', () => ({
-  JuryClient: vi.fn().mockImplementation(() => ({ verify: mockJuryVerify })),
+  JuryClient: vi.fn(function MockJuryClient() {
+    return { verify: mockJuryVerify };
+  }),
 }));
 
 vi.mock('../rsi/index.js', () => ({
-  RSIEngine: vi.fn().mockImplementation(() => ({})),
+  RSIEngine: vi.fn(function MockRSIEngine() {
+    return {};
+  }),
 }));
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

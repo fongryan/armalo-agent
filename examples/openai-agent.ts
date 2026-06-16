@@ -6,11 +6,10 @@
  *
  * Run: npx tsx examples/openai-agent.ts
  * Requires: OPENAI_API_KEY in .env
+ * Install: npm install openai
  */
 
 import 'dotenv/config';
-import OpenAI from 'openai';
-import { wrapOpenAI } from '@armalo/integrations';
 import { definePact, validateLocally } from '@armalo/core';
 
 // 1. Define your behavioral contract
@@ -35,6 +34,19 @@ const pact = definePact({
 });
 
 async function main() {
+  let OpenAI: typeof import('openai').default;
+  let wrapOpenAI: typeof import('@armalo/integrations').wrapOpenAI;
+
+  try {
+    const openaiModule = await import('openai');
+    const integrationsModule = await import('@armalo/integrations');
+    OpenAI = openaiModule.default;
+    wrapOpenAI = integrationsModule.wrapOpenAI;
+  } catch {
+    console.error('Missing dependencies. Run: npm install openai');
+    process.exit(1);
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     console.error('OPENAI_API_KEY is required for this example');
@@ -48,7 +60,7 @@ async function main() {
     agentId: process.env.ARMALO_AGENT_ID ?? 'openai-demo-agent',
   });
 
-  const messages: OpenAI.ChatCompletionMessageParam[] = [
+  const messages: import('openai').ChatCompletionMessageParam[] = [
     {
       role: 'system',
       content: 'You are a helpful, honest assistant. Always be accurate and cite your reasoning.',

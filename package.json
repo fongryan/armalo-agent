@@ -19,6 +19,9 @@
     "README.md",
     "LICENSE"
   ],
+  "overrides": {
+    "ws": "8.21.0"
+  },
   "keywords": [
     "ai-agent",
     "trust",
@@ -88,13 +91,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@vitest/coverage-v8": "^2.0.0",
+    "@vitest/coverage-v8": "^4.1.9",
     "tsx": "^4.16.0",
     "typescript": "^5.7.0",
-    "vitest": "^2.0.0"
-  },
-  "optionalDependencies": {
-    "@langchain/langgraph": "^0.2.0",
-    "openai": "^4.70.0"
+    "vitest": "^4.1.9"
   }
 }

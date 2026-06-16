@@ -27,14 +27,16 @@ const mockRsiClient = {
 };
 
 vi.mock('@armalo/core/client', () => ({
-  ArmaloClient: vi.fn().mockImplementation(() => ({
+  ArmaloClient: vi.fn(function MockArmaloClient() {
+    return {
     marketplace: mockMarketplace,
     escrow: mockEscrow,
     earn: mockEarn,
     cortex: mockCortex,
     rsi: mockRsiClient,
     getScore: vi.fn().mockResolvedValue({ compositeScore: 800, dimensions: {} }),
-  })),
+    };
+  }),
 }));
 
 const mockJuryVerify = vi.fn().mockResolvedValue({
@@ -48,13 +50,17 @@ const mockJuryVerify = vi.fn().mockResolvedValue({
 });
 
 vi.mock('../jury/index.js', () => ({
-  JuryClient: vi.fn().mockImplementation(() => ({ verify: mockJuryVerify })),
+  JuryClient: vi.fn(function MockJuryClient() {
+    return { verify: mockJuryVerify };
+  }),
 }));
 
 vi.mock('../rsi/index.js', () => ({
-  RSIEngine: vi.fn().mockImplementation(() => ({
-    runCycle: vi.fn().mockResolvedValue({ cycle: 1, scoreBefore: 800, scoreAfter: 805, gain: 5, improvements: [], status: 'improved' }),
-  })),
+  RSIEngine: vi.fn(function MockRSIEngine() {
+    return {
+      runCycle: vi.fn().mockResolvedValue({ cycle: 1, scoreBefore: 800, scoreAfter: 805, gain: 5, improvements: [], status: 'improved' }),
+    };
+  }),
 }));
 
 const mockAgentRun = vi.fn().mockResolvedValue({
@@ -63,7 +69,9 @@ const mockAgentRun = vi.fn().mockResolvedValue({
 });
 
 vi.mock('../agent.js', () => ({
-  TrustNativeAgent: vi.fn().mockImplementation(() => ({ run: mockAgentRun })),
+  TrustNativeAgent: vi.fn(function MockTrustNativeAgent() {
+    return { run: mockAgentRun };
+  }),
 }));
 
 function mockDealObj() {

@@ -8,9 +8,11 @@ const mockSubmit = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'jury-123' }
 const mockGetJudgment = vi.hoisted(() => vi.fn());
 
 vi.mock('@armalo/core/client', () => ({
-  ArmaloClient: vi.fn().mockImplementation(() => ({
-    jury: { submit: mockSubmit, getJudgment: mockGetJudgment },
-  })),
+  ArmaloClient: vi.fn(function MockArmaloClient() {
+    return {
+      jury: { submit: mockSubmit, getJudgment: mockGetJudgment },
+    };
+  }),
 }));
 
 // ── Test data ─────────────────────────────────────────────────────────────────

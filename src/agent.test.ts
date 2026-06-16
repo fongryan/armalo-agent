@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { InferenceClient } from './types.js';
 
-const mockAnthropicConstructor = vi.hoisted(() => vi.fn());
+const mockAnthropicConstructor = vi.hoisted(() => vi.fn(function MockAnthropic() {
+  return undefined;
+}));
 const mockWrapAnthropic = vi.hoisted(() => vi.fn((client: unknown) => client));
 
 vi.mock('@anthropic-ai/sdk', () => ({
@@ -36,7 +38,9 @@ describe('TrustNativeAgent provider configuration', () => {
     delete process.env['ANTHROPIC_API_KEY'];
     delete process.env['AGENT_MODEL'];
     delete process.env['AGENT_MAX_TOKENS'];
-    mockAnthropicConstructor.mockImplementation(() => fakeInferenceClient('hello from anthropic'));
+    mockAnthropicConstructor.mockImplementation(function MockAnthropicClient() {
+      return fakeInferenceClient('hello from anthropic');
+    });
   });
 
   it('does not require ANTHROPIC_API_KEY during construction or initialization', async () => {

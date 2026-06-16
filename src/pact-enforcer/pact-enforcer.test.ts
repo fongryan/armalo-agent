@@ -8,13 +8,17 @@ const mockValidateLocally = vi.hoisted(() => vi.fn());
 const mockJuryVerify = vi.hoisted(() => vi.fn());
 
 vi.mock('@armalo/core/client', () => ({
-  ArmaloClient: vi.fn().mockImplementation(() => ({ ingestTraces: mockIngestTraces })),
+  ArmaloClient: vi.fn(function MockArmaloClient() {
+    return { ingestTraces: mockIngestTraces };
+  }),
 }));
 
 vi.mock('@armalo/core/validator', () => ({ validateLocally: mockValidateLocally }));
 
 vi.mock('../jury/index.js', () => ({
-  JuryClient: vi.fn().mockImplementation(() => ({ verify: mockJuryVerify })),
+  JuryClient: vi.fn(function MockJuryClient() {
+    return { verify: mockJuryVerify };
+  }),
 }));
 
 import { PactEnforcer, PactViolationError } from './index.js';

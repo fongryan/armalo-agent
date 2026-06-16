@@ -83,6 +83,8 @@ ANTHROPIC_API_KEY='' OPENAI_API_KEY='' GEMINI_API_KEY='' OPENROUTER_API_KEY='' n
 
 That path proves repo install, typecheck, the no-key showcase smoke test, and the live showcase command without requiring a paid provider key.
 
+OpenAI and LangGraph SDKs are kept as repo example dependencies, not required for the core package install or the no-key showcase path.
+
 ---
 
 ## LLM Configuration
@@ -126,7 +128,7 @@ const agent = new TrustNativeAgent({
 - **Bedrock / hosted gateways / local routers** — Pass an Anthropic-compatible `inferenceClient`
 - **LangChain / LangGraph** — Wrap your model with Armalo plugins
 
-See [examples/openai-agent.ts](examples/openai-agent.ts) and [examples/langgraph-agent.ts](examples/langgraph-agent.ts) for full implementations.
+See [examples/openai-agent.ts](examples/openai-agent.ts) and [examples/langgraph-agent.ts](examples/langgraph-agent.ts) for full implementations. Those examples install provider/framework SDKs separately so the core package stays lean.
 
 ---
 
