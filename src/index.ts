@@ -1,4 +1,8 @@
 export { TrustNativeAgent } from './agent.js';
+export { ArmaloAgent } from './armalo-agent.js';
+export type { ArmaloAgentConfig, ArmaloRunResult } from './armalo-agent.js';
+export { PactBuilder, isBuiltPact, matchesDenyRule } from './pact-builder.js';
+export type { PactTemplateName, DenyOptions, RequireOptions, DenyRule, RequireRule, BuiltPact } from './pact-builder.js';
 export { SAFETY_DEFAULTS, RESEARCH_PACT, CODING_PACT, CUSTOMER_SUPPORT_PACT } from './pacts/index.js';
 export { ALL_TOOLS, toAnthropicTools, findTool } from './tools/registry.js';
 export { webSearchTool } from './tools/search.js';

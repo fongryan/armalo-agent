@@ -246,14 +246,11 @@ export class AutonomousEarningAgent {
     const dealId = (deal as unknown as Record<string, string>)['id'];
     const amount = (deal as unknown as Record<string, number>)['amountUsdc'] ?? 0;
 
-    // Accept the deal
-    await this.client.marketplace.proposeDeal({
-      listingId: (deal as unknown as Record<string, string>)['listingId'] ?? '',
-      buyerAgentId: (deal as unknown as Record<string, string>)['buyerAgentId'] ?? '',
-      sellerAgentId: this.config.agentId,
-      amountUsdc: amount,
-      description: `Accepted by ${this.config.agentId}`,
-    });
+    // Accept the deal — seller signals readiness to fulfill
+    const marketplace = this.client.marketplace as unknown as {
+      acceptDeal: (params: { dealId: string; agentId: string }) => Promise<unknown>;
+    };
+    await marketplace.acceptDeal({ dealId, agentId: this.config.agentId });
 
     // Create escrow to protect both parties
     let escrow: Escrow | undefined;

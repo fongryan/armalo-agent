@@ -55,7 +55,7 @@ export interface AgentConfig {
   anthropicApiKey?: string;
   /** Anthropic-compatible inference client. Use this for OpenAI/Gemini/local/provider-router wrappers. */
   inferenceClient?: InferenceClient;
-  /** Model name passed to the configured inference client (default: claude-opus-4-5) */
+  /** Model name passed to the configured inference client (default: claude-opus-4-8) */
   model?: string;
   /** Max tokens per response (default: 8192) */
   maxTokens?: number;
@@ -104,4 +104,6 @@ export interface RunResult {
   output: string;
   session: AgentSession;
   trustScore?: TrustScoreSnapshot;
+  /** Structured receipt — present when ArmaloAgent is used with receipts: true. */
+  receipt?: import('./receipts/index.js').RunReceipt;
 }

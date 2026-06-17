@@ -46,14 +46,14 @@ const DEFAULT_MAX_TOKENS = 8192;
 const MAX_ITERATIONS = 20;
 
 export class TrustNativeAgent {
-  private config: Required<Omit<AgentConfig, 'systemPrompt' | 'inferenceClient'>> & {
+  protected config: Required<Omit<AgentConfig, 'systemPrompt' | 'inferenceClient'>> & {
     systemPrompt: string;
     inferenceClient?: InferenceClient;
   };
   private inferenceClient?: InferenceClient;
   private trustClient: AgentTrustClient | null = null;
-  private pacts: PactDefinition[];
-  private tools: Tool[];
+  protected pacts: PactDefinition[];
+  protected tools: Tool[];
 
   constructor(config: AgentConfig = {}) {
     const armaloApiKey = config.armaloApiKey ?? process.env.ARMALO_API_KEY ?? '';
@@ -143,7 +143,22 @@ export class TrustNativeAgent {
         messages.push({ role: 'assistant', content });
 
         const toolResults = await Promise.all(
-          toolUseBlocks.map((toolUse) => executeTool(toolUse, tools)),
+          toolUseBlocks.map(async (toolUse) => {
+            const block = await this.beforeToolCall(toolUse.name, toolUse.input);
+            if (block) {
+              this.onToolCallComplete(toolUse.name, 0, true);
+              return {
+                type: 'tool_result' as const,
+                tool_use_id: toolUse.id,
+                content: `[Pact enforcement blocked tool "${toolUse.name}": ${block.reason}]`,
+                is_error: true,
+              };
+            }
+            const start = Date.now();
+            const result = await executeTool(toolUse, tools);
+            this.onToolCallComplete(toolUse.name, Date.now() - start, result.is_error === true);
+            return result;
+          }),
         );
 
         messages.push({ role: 'user', content: toolResults });
@@ -245,6 +260,24 @@ export class TrustNativeAgent {
         // validateLocally is best-effort
       }
     }
+  }
+
+  /**
+   * Called before each tool execution. Return a block reason to prevent the call.
+   * Override in subclasses (e.g. ArmaloAgent) to enforce pact deny rules per-action.
+   */
+  protected async beforeToolCall(
+    _toolName: string,
+    _toolInput: Record<string, unknown>,
+  ): Promise<{ blocked: true; reason: string } | null> {
+    return null;
+  }
+
+  /**
+   * Called after each tool completes (or is blocked). Override to collect telemetry.
+   */
+  protected onToolCallComplete(_toolName: string, _durationMs: number, _error: boolean): void {
+    // no-op in base class
   }
 
   /** Add custom tools to the agent */

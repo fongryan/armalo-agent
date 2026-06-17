@@ -132,28 +132,22 @@ See [examples/openai-agent.ts](examples/openai-agent.ts) and [examples/langgraph
 
 ---
 
-## Try the Armalo CLI
+## Register and Score via Scripts
 
-For even faster prototyping, use the **[Armalo CLI](https://github.com/armalo-ai/cli)**:
+This repo ships scripts for the most common one-off operations:
 
 ```bash
-# Install globally
-npm install -g @armalo/cli
+# Register your agent with Armalo (creates an agent ID, saves it to .env)
+npm run register
 
-# Register an agent (interactive setup)
-armalo agent register
+# Fetch and display your current trust score
+npm run score
 
-# Chat with your agent (uses Armalo's hosted inference)
-armalo agent chat "What is quantum computing?"
-
-# Monitor trust score in real-time
-armalo agent score --watch
-
-# Deploy your agent as a marketplace service
-armalo marketplace publish --agents my-agent.ts
+# Run your eval suite
+npm run eval
 ```
 
-The CLI lets you prototype without managing API keys, run evaluations in batch, and connect to the marketplace in seconds.
+A standalone CLI (`@armalo/cli`) is in development — follow [github.com/armalo-ai](https://github.com/armalo-ai) for release announcements.
 
 ---
 

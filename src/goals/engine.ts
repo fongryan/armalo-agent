@@ -285,28 +285,24 @@ export class GoalEngine {
 
   /** Load state from a previous session — call at startup. */
   async hydrate(): Promise<void> {
-    if (this.dreams.size > 0 || this.goals.size > 0) return; // already loaded
+    if (this.dreams.size > 0 || this.goals.size > 0) return;
     try {
-      const memories = await this.client.cortex.recall({
-        agentId: this.agentId,
-        limit: 20,
-        includeTiers: ['hot', 'warm'],
-      });
+      const [dreamsRes, goalsRes, plansRes] = await Promise.allSettled([
+        this.client.cortex.recall({ agentId: this.agentId, key: 'dreams', limit: 1 }),
+        this.client.cortex.recall({ agentId: this.agentId, key: 'goals', limit: 1 }),
+        this.client.cortex.recall({ agentId: this.agentId, key: 'plans', limit: 1 }),
+      ]);
 
-      for (const entry of memories.data) {
-        const key = String(entry['key'] ?? '');
-        const value = String(entry['value'] ?? '[]');
-        if (key === 'dreams') {
-          const items: Dream[] = JSON.parse(value);
-          items.forEach((d) => this.dreams.set(d.id, d));
-        } else if (key === 'goals') {
-          const items: Goal[] = JSON.parse(value);
-          items.forEach((g) => this.goals.set(g.id, g));
-        } else if (key === 'plans') {
-          const items: Plan[] = JSON.parse(value);
-          items.forEach((p) => this.plans.set(p.id, p));
-        }
-      }
+      const parseValue = (res: PromiseSettledResult<unknown>): unknown[] => {
+        if (res.status !== 'fulfilled') return [];
+        const v = (res.value as Record<string, unknown>)['value'];
+        if (typeof v !== 'string') return [];
+        try { return JSON.parse(v) as unknown[]; } catch { return []; }
+      };
+
+      for (const d of parseValue(dreamsRes) as Dream[]) this.dreams.set(d.id, d);
+      for (const g of parseValue(goalsRes) as Goal[]) this.goals.set(g.id, g);
+      for (const p of parseValue(plansRes) as Plan[]) this.plans.set(p.id, p);
     } catch {
       // First session — no memories yet
     }
