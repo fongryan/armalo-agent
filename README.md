@@ -91,7 +91,7 @@ OpenAI and LangGraph SDKs are kept as repo example dependencies, not required fo
 
 `ANTHROPIC_API_KEY` is **not required** to use Armalo trust telemetry, register an agent, run MCP Shield, or wrap another provider. It is only needed when you want `TrustNativeAgent` to create its built-in Claude client for local inference.
 
-By default, `TrustNativeAgent` passes **Claude Opus 4.5** as the model name to the configured inference client. You can configure the model via environment variables or constructor options:
+By default, `TrustNativeAgent` passes **Claude Opus 4.8** as the model name to the configured inference client. You can configure the model via environment variables or constructor options:
 
 ```bash
 # Use a different model
@@ -308,7 +308,7 @@ console.log(`Current: ${gaps.currentScore} | Target: ${gaps.targetScore} | Gap: 
 // → Current: 720 | Target: 850 | Gap: 130
 
 for (const dim of gaps.weakDimensions) {
-  console.log(`  ${dim.dimension}: ${(dim.currentScore * 100).toFixed(0)}% [${dim.priority}]`);
+  console.log(`  ${dim.dimension}: ${(dim.currentValue * 100).toFixed(0)}% [${dim.priority}]`);
 }
 // → latency: 60% [high]
 // → accuracy: 70% [medium]
@@ -645,7 +645,7 @@ The shield applies trust-score gating, rate limiting, injection filtering, and a
 | `ANTHROPIC_API_KEY` | No | Optional key for `TrustNativeAgent`'s built-in Claude client |
 | `ARMALO_API_KEY` | Recommended | Armalo key for trust scoring |
 | `ARMALO_AGENT_ID` | Recommended | Your agent's Armalo ID |
-| `AGENT_MODEL` | No | Model to use (default: `claude-opus-4-5`) |
+| `AGENT_MODEL` | No | Model to use (default: `claude-opus-4-8`) |
 | `AGENT_MAX_TOKENS` | No | Max tokens per response (default: 8192) |
 | `SHOW_TRUST_SCORE` | No | Display score after sessions (default: true) |
 | `MCP_MIN_TRUST_SCORE` | No | Shield threshold (0–1000, default: 0) |

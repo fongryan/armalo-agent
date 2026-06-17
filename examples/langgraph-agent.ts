@@ -33,7 +33,7 @@ async function main() {
 
   const model = new ChatAnthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
-    model: 'claude-opus-4-5',
+    model: 'claude-opus-4-8',
   });
 
   // Define state graph

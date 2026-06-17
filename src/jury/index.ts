@@ -4,6 +4,12 @@ import type { JuryVerdict, JuryResponse } from '@armalo/core';
 export interface JuryConfig {
   apiKey: string;
   agentId: string;
+  /** Default criteria applied to every verify() call when none are specified */
+  defaultCriteria?: string[];
+  /** Default poll interval in ms for waitForVerdict() (default: 2000) */
+  pollIntervalMs?: number;
+  /** Default timeout in ms for verify() (default: 60000) */
+  timeoutMs?: number;
   baseUrl?: string;
 }
 
@@ -59,9 +65,12 @@ export class JuryClient {
   private client: ArmaloClient;
   readonly agentId: string;
 
+  readonly config: JuryConfig;
+
   constructor(config: JuryConfig) {
     this.client = new ArmaloClient({ apiKey: config.apiKey, baseUrl: config.baseUrl });
     this.agentId = config.agentId;
+    this.config = config;
   }
 
   /**
@@ -100,8 +109,15 @@ export class JuryClient {
     submission: JurySubmission,
     opts: { timeoutMs?: number; pollIntervalMs?: number } = {},
   ): Promise<JuryResult> {
-    const judgmentId = await this.submit(submission);
-    return this.waitForVerdict(judgmentId, opts);
+    const merged: JurySubmission = {
+      ...submission,
+      criteria: submission.criteria ?? this.config.defaultCriteria,
+    };
+    const judgmentId = await this.submit(merged);
+    return this.waitForVerdict(judgmentId, {
+      timeoutMs: opts.timeoutMs ?? this.config.timeoutMs,
+      pollIntervalMs: opts.pollIntervalMs ?? this.config.pollIntervalMs,
+    });
   }
 
   /**

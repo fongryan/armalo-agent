@@ -4,6 +4,12 @@ import type { ScoreResponse } from '@armalo/core';
 export interface RSIConfig {
   apiKey: string;
   agentId: string;
+  /** Stop the loop when this composite score is reached (0–1000). Default: 900 */
+  targetScore?: number;
+  /** Number of eval cases generated per dimension per cycle. Default: 5 */
+  evalsPerCycle?: number;
+  /** Dimensions to target. Default: all weak dimensions ranked by score */
+  dimensions?: string[];
   baseUrl?: string;
 }
 
@@ -12,7 +18,10 @@ export interface RSILoopOptions {
   minScoreGain?: number;
   dryRun?: boolean;
   onCycleStart?: (cycle: number, score: ScoreResponse | null) => void;
+  /** Called after each cycle completes. Alias: onCycleComplete */
   onCycleEnd?: (cycle: number, result: RSICycleResult) => void;
+  /** Alias for onCycleEnd */
+  onCycleComplete?: (result: RSICycleResult) => void;
 }
 
 export interface RSIImprovement {
@@ -67,10 +76,12 @@ export interface RSICycleResult {
 export class RSIEngine {
   private client: ArmaloClient;
   readonly agentId: string;
+  readonly config: RSIConfig;
 
   constructor(config: RSIConfig) {
     this.client = new ArmaloClient({ apiKey: config.apiKey, baseUrl: config.baseUrl });
     this.agentId = config.agentId;
+    this.config = config;
   }
 
   /**
@@ -148,12 +159,55 @@ export class RSIEngine {
       results.push(result);
 
       opts.onCycleEnd?.(cycle, result);
+      opts.onCycleComplete?.(result);
 
       if (result.status === 'error') break;
       if (result.gain < minScoreGain && cycle > 1) {
         console.log(`[RSI] Gain ${result.gain} < threshold ${minScoreGain} — stopping loop`);
         break;
       }
+    }
+
+    return results;
+  }
+
+  /**
+   * Run the RSI loop until the target score is reached.
+   * Uses `config.targetScore` if set; otherwise stops only when maxCycles is exhausted.
+   * Alias for `runLoop` with a built-in score-based early stop.
+   */
+  async runToTarget(opts: RSILoopOptions = {}): Promise<RSICycleResult[]> {
+    const targetScore = this.config.targetScore;
+    const wrapped: RSILoopOptions = {
+      ...opts,
+      onCycleEnd: (cycle, result) => {
+        opts.onCycleEnd?.(cycle, result);
+        opts.onCycleComplete?.(result);
+        if (targetScore !== undefined && result.scoreAfter >= targetScore) {
+          console.log(`[RSI] Target score ${targetScore} reached at cycle ${cycle} — stopping`);
+        }
+      },
+    };
+    const maxCycles = opts.maxCycles ?? 10;
+    const results: RSICycleResult[] = [];
+    const loopOpts = { ...wrapped, maxCycles };
+
+    for (let cycle = 1; cycle <= maxCycles; cycle++) {
+      const currentScore = await this.client.getScore(this.agentId).catch(() => null);
+      loopOpts.onCycleStart?.(cycle, currentScore as ScoreResponse);
+
+      if (targetScore !== undefined && (currentScore as ScoreResponse | null)?.compositeScore !== undefined) {
+        if (((currentScore as ScoreResponse).compositeScore ?? 0) >= targetScore) break;
+      }
+
+      const result = await this.runCycle(cycle);
+      results.push(result);
+
+      loopOpts.onCycleEnd?.(cycle, result);
+
+      if (result.status === 'error') break;
+      if (targetScore !== undefined && result.scoreAfter >= targetScore) break;
+      if ((opts.minScoreGain ?? 1) > result.gain && cycle > 1) break;
     }
 
     return results;

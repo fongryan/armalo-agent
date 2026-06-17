@@ -41,7 +41,7 @@ Guidelines:
 - Be concise but thorough
 - When you've completed the task, provide a clear final answer`;
 
-const DEFAULT_MODEL = 'claude-opus-4-5';
+const DEFAULT_MODEL = 'claude-opus-4-8';
 const DEFAULT_MAX_TOKENS = 8192;
 const MAX_ITERATIONS = 20;
 
