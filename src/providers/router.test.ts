@@ -6,7 +6,7 @@ describe('provider router', () => {
     const first = createStaticInferenceClient('anthropic', new Error('quota exceeded'));
     const second = createStaticInferenceClient('openai', 'hello from openai');
     const router = createFallbackInferenceClient([
-      { name: 'anthropic', model: 'claude-opus-4-5', client: first },
+      { name: 'anthropic', model: 'claude-opus-4-8', client: first },
       { name: 'openai', model: 'gpt-4.1', client: second },
     ]);
 

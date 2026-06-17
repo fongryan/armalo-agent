@@ -64,7 +64,7 @@ describe('TrustNativeAgent provider configuration', () => {
 
     expect(result.output).toBe('custom client response');
     expect(inferenceClient.messages.create).toHaveBeenCalledWith(expect.objectContaining({
-      model: 'claude-opus-4-5',
+      model: 'claude-opus-4-8',
       max_tokens: 8192,
     }));
     expect(mockAnthropicConstructor).not.toHaveBeenCalled();
