@@ -166,7 +166,7 @@ async function main(): Promise<void> {
       console.log(`  → Waiting for trust score to update...`);
 
       const score = await harness.waitForScore(120_000);
-      console.log(`\n  ✓ Trust score updated: ${score.composite}/1000`);
+      console.log(`\n  ✓ Trust score updated: ${score.compositeScore}/1000`);
       console.log(`  Tier: ${(score as Record<string, unknown>)['certificationTier'] ?? 'unranked'}`);
 
       // Show score history (track improvement over time)

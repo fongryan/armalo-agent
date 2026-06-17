@@ -16,7 +16,7 @@
  *   armalo-mcp
  *
  * Or run via npx:
- *   npx armalo-agent armalo-mcp
+ *   npx armalo-agent
  */
 
 import 'dotenv/config';

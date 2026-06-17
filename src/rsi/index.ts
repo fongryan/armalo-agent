@@ -87,7 +87,7 @@ export class RSIEngine {
   /**
    * Run a single RSI cycle: SCAN → RANK → ACT → VERIFY → LEARN.
    */
-  async runCycle(cycle: number): Promise<RSICycleResult> {
+  async runCycle(cycle = 1): Promise<RSICycleResult> {
     // SCAN
     const [currentScore, insights] = await Promise.all([
       this.client.getScore(this.agentId).catch(() => null),

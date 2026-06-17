@@ -2,12 +2,14 @@ import type { Tool } from '../types.js';
 
 /**
  * Web search tool — fetches results from a search provider.
- * Uses the Brave Search API by default (set BRAVE_SEARCH_API_KEY),
- * falls back to a lightweight DuckDuckGo scrape.
+ * Uses the Brave Search API when BRAVE_SEARCH_API_KEY is set (full web search).
+ * Falls back to DuckDuckGo Instant Answer API (Wikipedia abstracts + related
+ * topics only — NOT full web search results).
  */
 export const webSearchTool: Tool = {
   name: 'web_search',
-  description: 'Search the web for current information. Returns the top results with titles, URLs, and snippets.',
+  description:
+    'Search the web for information. With BRAVE_SEARCH_API_KEY set, returns full web results. Without it, falls back to DuckDuckGo Instant Answers (Wikipedia abstracts and related topics — not full web search).',
   input_schema: {
     type: 'object',
     properties: {

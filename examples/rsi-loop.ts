@@ -40,7 +40,7 @@ async function main(): Promise<void> {
     maxCycles: 5,
     minScoreGain: 1,
     onCycleStart: (cycle, score) => {
-      console.log(`Cycle ${cycle} starting — current score: ${score?.composite ?? '?'}/1000`);
+      console.log(`Cycle ${cycle} starting — current score: ${score?.compositeScore ?? '?'}/1000`);
     },
     onCycleEnd: (cycle, result) => {
       if (result.status === 'improved') {

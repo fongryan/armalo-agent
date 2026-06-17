@@ -5,7 +5,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "armalo-mcp": "./dist/mcp-server.js"
+    "armalo-mcp": "./dist/mcp-server.js",
+    "armalo-agent": "./dist/mcp-server.js"
   },
   "exports": {
     ".": {

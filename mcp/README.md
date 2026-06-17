@@ -35,7 +35,7 @@ The `armalo-agent` MCP server exposes trust-native agent capabilities to any MCP
 ### Option 1: npx (no install required)
 
 ```bash
-npx armalo-agent armalo-mcp
+npx armalo-agent
 ```
 
 ### Option 2: Global install
@@ -58,7 +58,7 @@ npm run mcp:dev
   "mcpServers": {
     "armalo-agent": {
       "command": "npx",
-      "args": ["-y", "armalo-agent", "armalo-mcp"],
+      "args": ["-y", "armalo-agent"],
       "env": {
         "ARMALO_API_KEY": "armalo_sk_...",
         "ARMALO_AGENT_ID": "your-agent-id"
@@ -71,7 +71,7 @@ npm run mcp:dev
 ## Add to Claude Code
 
 ```bash
-claude mcp add armalo-agent -- npx -y armalo-agent armalo-mcp
+claude mcp add armalo-agent -- npx -y armalo-agent
 ```
 
 ## Configuration

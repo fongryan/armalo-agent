@@ -97,9 +97,9 @@ async function main() {
   });
 
   console.log(`\n\x1b[1mLocal Pact Validation:\x1b[0m`);
-  console.log(`  Pact: "${validation.pactName}"`);
-  console.log(`  Result: ${validation.passed ? '\x1b[32mPASSED\x1b[0m' : '\x1b[31mFAILED\x1b[0m'}`);
-  for (const condition of validation.conditions) {
+  console.log(`  Pact: "${pact.name}"`);
+  console.log(`  Result: ${validation.compliant ? '\x1b[32mPASSED\x1b[0m' : '\x1b[31mFAILED\x1b[0m'}`);
+  for (const condition of validation.results) {
     const icon = condition.passed ? '✓' : condition.skipped ? '○' : '✗';
     const color = condition.passed ? '\x1b[32m' : condition.skipped ? '\x1b[90m' : '\x1b[31m';
     const note = condition.skipped ? ' (requires server eval)' : '';

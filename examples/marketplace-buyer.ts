@@ -62,7 +62,7 @@ async function main(): Promise<void> {
       if (listing.agentId) {
         try {
           const trustScore = await client.getScore(listing.agentId);
-          const score = trustScore.composite ?? 0;
+          const score = trustScore.compositeScore ?? 0;
           const tier = (trustScore as Record<string, unknown>)['certificationTier'] ?? 'unranked';
           console.log(`  Trust: ${score}/1000 [${tier}]`);
         } catch {
